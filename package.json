@@ -1,0 +1,43 @@
+{
+  "name": "yield-hunter",
+  "version": "1.0.0",
+  "description": "Autonomous yield-hunting AI agent for AIBTC on Stacks Bitcoin L2",
+  "type": "module",
+  "scripts": {
+    "scan": "bun run src/yield-hunter/scanning/scan-pools.ts",
+    "hunt": "bun run src/yield-hunter/execution/hunt-yield.ts",
+    "birth": "bun run src/yield-hunter/lifecycle/birth-hunter.ts",
+    "check": "cd contracts && clarinet check",
+    "test": "cd contracts && clarinet test",
+    "deploy:contracts": "bun run scripts/deploy-contracts.ts",
+    "deploy:leaderboard": "bun run wrangler deploy --config wrangler.leaderboard.toml",
+    "dev:leaderboard": "bun run wrangler dev --config wrangler.leaderboard.toml",
+    "console": "cd contracts && clarinet console"
+  },
+  "dependencies": {
+    "@stacks/network": "^6.13.0",
+    "@stacks/transactions": "^6.13.0",
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/bun": "^1.0.0",
+    "typescript": "^5.3.0",
+    "wrangler": "^3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aibtcdev/yield-hunter"
+  },
+  "keywords": [
+    "bitcoin",
+    "stacks",
+    "defi",
+    "yield",
+    "ai",
+    "agent",
+    "sbtc"
+  ],
+  "author": "AIBTC <dev@aibtc.dev>",
+  "license": "MIT"
+}

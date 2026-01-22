@@ -1,0 +1,17 @@
+name = "yield-hunter-leaderboard"
+main = "src/yield-hunter/api/leaderboard-api.ts"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[vars]
+STACKS_NETWORK = "testnet"
+
+# Production environment
+[env.production]
+workers_dev = false
+routes = [
+  { pattern = "leaderboard.aibtc.dev/*", zone_name = "aibtc.dev" }
+]
+
+[env.production.vars]
+STACKS_NETWORK = "mainnet"

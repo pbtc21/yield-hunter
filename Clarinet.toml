@@ -1,0 +1,33 @@
+[project]
+name = "yield-hunter"
+description = "Autonomous yield-hunting AI agent for AIBTC"
+authors = ["AIBTC <dev@aibtc.dev>"]
+telemetry = false
+cache_dir = "./.cache"
+requirements = []
+
+[contracts.yield-hunter]
+path = "contracts/yield-hunter/yield-hunter.clar"
+
+[contracts.yield-hunter-adapter]
+path = "contracts/yield-hunter/yield-hunter-adapter.clar"
+
+[contracts.yield-hunter-oracle]
+path = "contracts/yield-hunter/yield-hunter-oracle.clar"
+
+# External contract references (deployed on mainnet/testnet)
+[contracts.sbtc-token]
+path = "contracts/external/sbtc-token.clar"
+clarity_version = 2
+
+[contracts.xyk-pool-trait]
+path = "contracts/external/xyk-pool-trait.clar"
+clarity_version = 2
+
+[repl]
+costs_version = 2
+parser_version = 2
+
+[repl.analysis]
+passes = ["check_checker"]
+check_checker = { trusted_sender = false, trusted_caller = false, callee_filter = false }
