@@ -1068,20 +1068,27 @@ const html = `<!DOCTYPE html>
         }
       }
 
-      // Nothing worked - show what's available
-      const available = [];
-      if (window.btc) available.push('btc');
-      if (window.StacksProvider) available.push('StacksProvider');
-      if (window.XverseProviders) available.push('XverseProviders');
-      if (window.LeatherProvider) available.push('LeatherProvider');
+      // Nothing worked - show detailed debug info
+      const debug = [];
+      debug.push('btc: ' + (window.btc ? 'yes, request=' + (typeof window.btc.request) : 'no'));
+      debug.push('StacksProvider: ' + (window.StacksProvider ? 'yes, request=' + (typeof window.StacksProvider.request) : 'no'));
+      debug.push('XverseProviders: ' + (window.XverseProviders ? 'yes' : 'no'));
 
-      if (available.length === 0) {
-        // No wallet detected
+      if (window.btc) {
+        debug.push('btc methods: ' + Object.keys(window.btc).filter(k => typeof window.btc[k] === 'function').join(', '));
+      }
+      if (window.StacksProvider) {
+        debug.push('StacksProvider methods: ' + Object.keys(window.StacksProvider).filter(k => typeof window.StacksProvider[k] === 'function').join(', '));
+      }
+
+      const hasWallet = window.btc || window.StacksProvider || window.XverseProviders;
+
+      if (!hasWallet) {
         if (confirm('No wallet detected. Install Xverse?')) {
           window.open('https://www.xverse.app/download', '_blank');
         }
       } else {
-        alert('Wallet detected (' + available.join(', ') + ') but connection failed.\\n\\nPlease try:\\n1. Refresh the page\\n2. Check wallet is unlocked\\n3. Try a different browser');
+        alert('Connection failed.\\n\\nDebug info:\\n' + debug.join('\\n') + '\\n\\nScreenshot this and report the issue.');
       }
     }
 
