@@ -964,160 +964,125 @@ const html = `<!DOCTYPE html>
     // WALLET CONNECTION
     // ============================================
     async function connectWallet() {
-      console.log('Attempting wallet connection...');
-      console.log('Available providers:', {
-        StacksProvider: !!window.StacksProvider,
-        LeatherProvider: !!window.LeatherProvider,
-        XverseProviders: !!window.XverseProviders,
-        btc: !!window.btc
-      });
+      console.log('Wallet connect attempt...');
 
-      // Method 1: Xverse in-app browser (XverseProviders)
-      if (window.XverseProviders?.StacksProvider) {
-        try {
-          console.log('Using XverseProviders.StacksProvider');
-          const provider = window.XverseProviders.StacksProvider;
+      // Helper to extract Stacks address from various response formats
+      function extractAddress(response) {
+        if (!response) return null;
 
-          // Xverse in-app may use getAccounts directly
-          if (typeof provider.getAccounts === 'function') {
-            const accounts = await provider.getAccounts();
-            console.log('getAccounts response:', accounts);
-            if (accounts && accounts.length > 0) {
-              const addr = accounts.find(a => a.startsWith('SP')) || accounts[0];
-              state.connected = true;
-              state.address = addr;
-              onConnect();
-              return;
-            }
+        // Direct address string
+        if (typeof response === 'string' && response.startsWith('SP')) return response;
+
+        // Result wrapper
+        const data = response.result || response;
+
+        // Array of addresses
+        if (Array.isArray(data)) {
+          for (const item of data) {
+            if (typeof item === 'string' && item.startsWith('SP')) return item;
+            if (item?.address?.startsWith('SP')) return item.address;
+            if (item?.purpose === 'stacks' && item?.address) return item.address;
           }
-
-          // Or connect method
-          if (typeof provider.connect === 'function') {
-            const result = await provider.connect();
-            console.log('connect response:', result);
-            if (result && result.address) {
-              state.connected = true;
-              state.address = result.address;
-              onConnect();
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('XverseProviders error:', err);
         }
+
+        // Addresses array in object
+        if (data?.addresses) {
+          for (const addr of data.addresses) {
+            if (addr?.address?.startsWith('SP')) return addr.address;
+            if (addr?.purpose === 'stacks') return addr.address;
+          }
+        }
+
+        // Direct address property
+        if (data?.address?.startsWith('SP')) return data.address;
+
+        // Profile format (Leather)
+        if (data?.profile?.stxAddress?.mainnet) return data.profile.stxAddress.mainnet;
+
+        return null;
       }
 
-      // Method 2: Xverse btc global (sats-connect style)
-      if (window.btc) {
+      // Try different wallet connection methods
+      const attempts = [
+        // Xverse in-app browser - btc.request with stx_getAccounts
+        async () => {
+          if (!window.btc?.request) return null;
+          console.log('Trying btc.request stx_getAccounts...');
+          const res = await window.btc.request('stx_getAccounts', {});
+          return extractAddress(res);
+        },
+
+        // Xverse - btc.request with getAccounts
+        async () => {
+          if (!window.btc?.request) return null;
+          console.log('Trying btc.request getAccounts...');
+          const res = await window.btc.request('getAccounts', { purposes: ['stacks'] });
+          return extractAddress(res);
+        },
+
+        // XverseProviders.StacksProvider
+        async () => {
+          if (!window.XverseProviders?.StacksProvider?.request) return null;
+          console.log('Trying XverseProviders.StacksProvider.request...');
+          const res = await window.XverseProviders.StacksProvider.request('stx_getAccounts', {});
+          return extractAddress(res);
+        },
+
+        // Leather - StacksProvider.request stx_getAccounts
+        async () => {
+          if (!window.StacksProvider?.request) return null;
+          console.log('Trying StacksProvider.request stx_getAccounts...');
+          const res = await window.StacksProvider.request({ method: 'stx_getAccounts' });
+          return extractAddress(res);
+        },
+
+        // Leather - StacksProvider.request getAddresses
+        async () => {
+          if (!window.StacksProvider?.request) return null;
+          console.log('Trying StacksProvider.request getAddresses...');
+          const res = await window.StacksProvider.request({ method: 'getAddresses', params: { purposes: ['stacks'] } });
+          return extractAddress(res);
+        },
+
+        // Legacy Leather authenticationRequest
+        async () => {
+          if (!window.StacksProvider?.authenticationRequest) return null;
+          console.log('Trying authenticationRequest...');
+          const res = await window.StacksProvider.authenticationRequest();
+          return extractAddress(res);
+        },
+      ];
+
+      for (const attempt of attempts) {
         try {
-          console.log('Using window.btc');
-          const response = await window.btc.request('getAccounts', {
-            purposes: ['stacks'],
-            message: 'Yield Hunter wants to connect'
-          });
-          console.log('btc.request response:', response);
-
-          if (response?.result?.addresses) {
-            const stacksAddr = response.result.addresses.find(a => a.purpose === 'stacks');
-            if (stacksAddr) {
-              state.connected = true;
-              state.address = stacksAddr.address;
-              onConnect();
-              return;
-            }
-          }
-        } catch (err) {
-          console.error('window.btc error:', err);
-        }
-      }
-
-      // Method 3: Leather wallet (StacksProvider with request)
-      if (window.StacksProvider && typeof window.StacksProvider.request === 'function') {
-        try {
-          console.log('Using StacksProvider.request');
-          const response = await window.StacksProvider.request({ method: 'stx_requestAccounts' });
-          console.log('StacksProvider response:', response);
-
-          const addresses = response?.addresses || response?.result?.addresses || [];
-          if (addresses.length > 0) {
-            const mainnetAddr = addresses.find(a => a.address?.startsWith('SP')) || addresses[0];
+          const address = await attempt();
+          if (address) {
+            console.log('Connected with address:', address);
             state.connected = true;
-            state.address = mainnetAddr.address || mainnetAddr;
+            state.address = address;
             onConnect();
             return;
           }
         } catch (err) {
-          console.error('StacksProvider.request error:', err);
+          console.log('Attempt failed:', err.message);
         }
       }
 
-      // Method 4: Leather legacy (authenticationRequest)
-      if (window.StacksProvider && typeof window.StacksProvider.authenticationRequest === 'function') {
-        try {
-          console.log('Using StacksProvider.authenticationRequest');
-          const response = await window.StacksProvider.authenticationRequest();
-          console.log('authenticationRequest response:', response);
+      // Nothing worked - show what's available
+      const available = [];
+      if (window.btc) available.push('btc');
+      if (window.StacksProvider) available.push('StacksProvider');
+      if (window.XverseProviders) available.push('XverseProviders');
+      if (window.LeatherProvider) available.push('LeatherProvider');
 
-          if (response && response.profile?.stxAddress?.mainnet) {
-            state.connected = true;
-            state.address = response.profile.stxAddress.mainnet;
-            onConnect();
-            return;
-          }
-        } catch (err) {
-          console.error('authenticationRequest error:', err);
+      if (available.length === 0) {
+        // No wallet detected
+        if (confirm('No wallet detected. Install Xverse?')) {
+          window.open('https://www.xverse.app/download', '_blank');
         }
+      } else {
+        alert('Wallet detected (' + available.join(', ') + ') but connection failed.\\n\\nPlease try:\\n1. Refresh the page\\n2. Check wallet is unlocked\\n3. Try a different browser');
       }
-
-      // Method 5: Check for any Stacks provider with different methods
-      const provider = window.StacksProvider || window.LeatherProvider;
-      if (provider) {
-        console.log('Provider methods:', Object.keys(provider).filter(k => typeof provider[k] === 'function'));
-
-        // Try common method names
-        const methods = ['connect', 'getAccounts', 'requestAccounts', 'enable'];
-        for (const method of methods) {
-          if (typeof provider[method] === 'function') {
-            try {
-              console.log('Trying provider.' + method);
-              const result = await provider[method]();
-              console.log(method + ' result:', result);
-
-              // Extract address from various response formats
-              let addr = null;
-              if (typeof result === 'string' && result.startsWith('SP')) {
-                addr = result;
-              } else if (Array.isArray(result)) {
-                addr = result.find(a => (typeof a === 'string' ? a : a?.address)?.startsWith('SP'));
-                if (addr && typeof addr !== 'string') addr = addr.address;
-              } else if (result?.address) {
-                addr = result.address;
-              } else if (result?.addresses) {
-                addr = result.addresses.find(a => a?.address?.startsWith('SP'))?.address;
-              }
-
-              if (addr) {
-                state.connected = true;
-                state.address = addr;
-                onConnect();
-                return;
-              }
-            } catch (e) {
-              console.error(method + ' failed:', e);
-            }
-          }
-        }
-      }
-
-      // No method worked - show debug info and install options
-      alert(
-        'Could not connect wallet.\\n\\n' +
-        'Debug info:\\n' +
-        '- StacksProvider: ' + (!!window.StacksProvider) + '\\n' +
-        '- XverseProviders: ' + (!!window.XverseProviders) + '\\n' +
-        '- btc: ' + (!!window.btc) + '\\n\\n' +
-        'Please try refreshing the page or use a different browser.'
-      );
     }
 
     // On successful connection
