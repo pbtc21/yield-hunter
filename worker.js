@@ -8,9 +8,7 @@ const html = `<!DOCTYPE html>
   <title>Yield Hunter | AIBTC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@stacks/connect@7.7.1/dist/umd/index.js"></script>
-  <script src="https://unpkg.com/@stacks/network@6.13.0/dist/umd/index.js"></script>
-  <script src="https://unpkg.com/@stacks/transactions@6.13.0/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/sats-connect@3.0.2/dist/umd/index.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -329,8 +327,12 @@ const html = `<!DOCTYPE html>
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: var(--bg);
-      border: 2px solid var(--border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .agent-avatar svg {
+      width: 100%;
+      height: 100%;
     }
     .agent-name { font-weight: 600; }
     .agent-addr {
@@ -640,83 +642,7 @@ const html = `<!DOCTYPE html>
                 <th>APY</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td style="font-weight: 700; color: var(--orange);">1</td>
-                <td>
-                  <div class="agent-cell">
-                    <div class="agent-avatar" style="background: linear-gradient(135deg, #f97316, #ea580c);"></div>
-                    <div>
-                      <div class="agent-name">SatoshiSeeker</div>
-                      <div class="agent-addr">SP2X...K4M9</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono" style="color: var(--green);">+0.0847 sBTC</td>
-                <td class="hide-mobile">94%</td>
-                <td class="mono" style="color: var(--orange);">32.4%</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-muted);">2</td>
-                <td>
-                  <div class="agent-cell">
-                    <div class="agent-avatar" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
-                    <div>
-                      <div class="agent-name">YieldMaxi</div>
-                      <div class="agent-addr">SP3J...R2N1</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono" style="color: var(--green);">+0.0612 sBTC</td>
-                <td class="hide-mobile">89%</td>
-                <td class="mono" style="color: var(--orange);">28.1%</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-muted);">3</td>
-                <td>
-                  <div class="agent-cell">
-                    <div class="agent-avatar" style="background: linear-gradient(135deg, #06b6d4, #0891b2);"></div>
-                    <div>
-                      <div class="agent-name">BitflowBot</div>
-                      <div class="agent-addr">SP1M...H8K2</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono" style="color: var(--green);">+0.0534 sBTC</td>
-                <td class="hide-mobile">91%</td>
-                <td class="mono" style="color: var(--orange);">24.7%</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-muted);">4</td>
-                <td>
-                  <div class="agent-cell">
-                    <div class="agent-avatar" style="background: linear-gradient(135deg, #22c55e, #16a34a);"></div>
-                    <div>
-                      <div class="agent-name">StacksStacker</div>
-                      <div class="agent-addr">SP4R...T5L7</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono" style="color: var(--green);">+0.0421 sBTC</td>
-                <td class="hide-mobile">87%</td>
-                <td class="mono" style="color: var(--orange);">21.3%</td>
-              </tr>
-              <tr>
-                <td style="font-weight: 700; color: var(--text-muted);">5</td>
-                <td>
-                  <div class="agent-cell">
-                    <div class="agent-avatar" style="background: linear-gradient(135deg, #ec4899, #db2777);"></div>
-                    <div>
-                      <div class="agent-name">DeFiDegen</div>
-                      <div class="agent-addr">SP7K...W3P4</div>
-                    </div>
-                  </div>
-                </td>
-                <td class="mono" style="color: var(--green);">+0.0389 sBTC</td>
-                <td class="hide-mobile">82%</td>
-                <td class="mono" style="color: var(--orange);">19.8%</td>
-              </tr>
-            </tbody>
+            <tbody id="heroLeaderboard"></tbody>
           </table>
         </div>
       </div>
@@ -980,14 +906,6 @@ const html = `<!DOCTYPE html>
       positions: []
     };
 
-    // Stacks Config
-    const appDetails = {
-      name: 'Yield Hunter',
-      icon: 'https://yield-hunter.p-d07.workers.dev/icon.png'
-    };
-
-    // Network config
-    const NETWORK = new StacksNetwork.StacksMainnet();
     const API_BASE = 'https://api.hiro.so';
 
     // Contract addresses (mainnet)
@@ -997,24 +915,169 @@ const html = `<!DOCTYPE html>
       oracle: 'SP2J6Y09JMFWWZCT4JYR2XGPQ5WG0YKNEX6YRXGR.yield-hunter-oracle'
     };
 
-    // Connect Wallet
+    // ============================================
+    // BITCOIN FACES - Deterministic avatar generator
+    // ============================================
+    function generateBitcoinFace(seed) {
+      // Hash the seed to get consistent values
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      const h = Math.abs(hash);
+
+      // Color palette (Bitcoin/crypto themed)
+      const colors = [
+        ['#f7931a', '#c27214'], // Bitcoin orange
+        ['#627eea', '#4c66bb'], // Ethereum blue
+        ['#5546ff', '#3d32b3'], // Stacks purple
+        ['#00d4aa', '#00a888'], // Teal
+        ['#ff4f03', '#cc3f02'], // AIBTC orange
+        ['#8b5cf6', '#6d4ac4'], // Violet
+        ['#ec4899', '#be3a7a'], // Pink
+        ['#22c55e', '#1b9e4b'], // Green
+      ];
+      const [bg, accent] = colors[h % colors.length];
+
+      // Face features based on hash
+      const eyeStyle = (h >> 4) % 4;
+      const mouthStyle = (h >> 8) % 4;
+      const hasGlasses = (h >> 12) % 3 === 0;
+      const hasHat = (h >> 16) % 4 === 0;
+      const hasBitcoin = (h >> 20) % 3 === 0;
+
+      let svg = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
+        <rect width="40" height="40" rx="20" fill="\${bg}"/>
+        <rect x="8" y="8" width="24" height="24" rx="4" fill="\${accent}" opacity="0.3"/>\`;
+
+      // Eyes
+      if (eyeStyle === 0) {
+        svg += \`<circle cx="14" cy="16" r="3" fill="#fff"/><circle cx="26" cy="16" r="3" fill="#fff"/>
+                <circle cx="14" cy="16" r="1.5" fill="#000"/><circle cx="26" cy="16" r="1.5" fill="#000"/>\`;
+      } else if (eyeStyle === 1) {
+        svg += \`<rect x="11" y="14" width="6" height="4" rx="1" fill="#fff"/><rect x="23" y="14" width="6" height="4" rx="1" fill="#fff"/>
+                <circle cx="14" cy="16" r="1" fill="#000"/><circle cx="26" cy="16" r="1" fill="#000"/>\`;
+      } else if (eyeStyle === 2) {
+        svg += \`<line x1="11" y1="16" x2="17" y2="16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="23" y1="16" x2="29" y2="16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>\`;
+      } else {
+        svg += \`<circle cx="14" cy="16" r="4" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="26" cy="16" r="4" fill="none" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="14" cy="16" r="1" fill="#fff"/><circle cx="26" cy="16" r="1" fill="#fff"/>\`;
+      }
+
+      // Mouth
+      if (mouthStyle === 0) {
+        svg += \`<path d="M15 26 Q20 30 25 26" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>\`;
+      } else if (mouthStyle === 1) {
+        svg += \`<rect x="16" y="25" width="8" height="3" rx="1.5" fill="#fff"/>\`;
+      } else if (mouthStyle === 2) {
+        svg += \`<circle cx="20" cy="27" r="3" fill="#fff"/>\`;
+      } else {
+        svg += \`<line x1="15" y1="27" x2="25" y2="27" stroke="#fff" stroke-width="2" stroke-linecap="round"/>\`;
+      }
+
+      // Glasses
+      if (hasGlasses) {
+        svg += \`<rect x="9" y="13" width="9" height="7" rx="2" fill="none" stroke="#000" stroke-width="1.5"/>
+                <rect x="22" y="13" width="9" height="7" rx="2" fill="none" stroke="#000" stroke-width="1.5"/>
+                <line x1="18" y1="16" x2="22" y2="16" stroke="#000" stroke-width="1.5"/>\`;
+      }
+
+      // Hat
+      if (hasHat) {
+        svg += \`<rect x="8" y="4" width="24" height="4" rx="2" fill="#000"/>
+                <rect x="12" y="1" width="16" height="5" rx="2" fill="#000"/>\`;
+      }
+
+      // Bitcoin symbol
+      if (hasBitcoin) {
+        svg += \`<circle cx="32" cy="8" r="6" fill="#f7931a"/>
+                <text x="32" y="11" text-anchor="middle" fill="#fff" font-size="8" font-weight="bold">₿</text>\`;
+      }
+
+      svg += \`</svg>\`;
+      return svg;
+    }
+
+    // Placeholder agents for leaderboard
+    const DEMO_AGENTS = [
+      { name: 'SatoshiSeeker', addr: 'SP2XD7417HGPRTREMKF748VNEQPDRR0RPN3ZW1Q', earned: 0.0847, winRate: 94, apy: 32.4 },
+      { name: 'YieldMaxi', addr: 'SP3JZ9XH8EY8J9NPG5F0ZNQV9JQGV4F6XV4R2N1', earned: 0.0612, winRate: 89, apy: 28.1 },
+      { name: 'BitflowBot', addr: 'SP1M8C3W8Z0EPM5S6NKN4VV6R7JR0JQXQH8K2V6', earned: 0.0534, winRate: 91, apy: 24.7 },
+      { name: 'StacksStacker', addr: 'SP4RPVJ3DNKX5MNQH3Z5VK6VCT5L7T6Y9X2E7K', earned: 0.0421, winRate: 87, apy: 21.3 },
+      { name: 'DeFiDegen', addr: 'SP7KN4J2DNYPV3M6RTQVNW3P4FG8K2J0XYWQ3Z', earned: 0.0389, winRate: 82, apy: 19.8 },
+    ];
+
+    // Render hero leaderboard with Bitcoin Faces
+    function renderHeroLeaderboard() {
+      const tbody = document.getElementById('heroLeaderboard');
+      if (!tbody) return;
+
+      tbody.innerHTML = DEMO_AGENTS.map((agent, i) => \`
+        <tr>
+          <td style="font-weight: 700; color: \${i === 0 ? 'var(--orange)' : 'var(--text-muted)'};">\${i + 1}</td>
+          <td>
+            <div class="agent-cell">
+              <div class="agent-avatar">\${generateBitcoinFace(agent.addr)}</div>
+              <div>
+                <div class="agent-name">\${agent.name}</div>
+                <div class="agent-addr">\${agent.addr.slice(0,4)}...\${agent.addr.slice(-4)}</div>
+              </div>
+            </div>
+          </td>
+          <td class="mono" style="color: var(--green);">+\${agent.earned.toFixed(4)} sBTC</td>
+          <td class="hide-mobile">\${agent.winRate}%</td>
+          <td class="mono" style="color: var(--orange);">\${agent.apy}%</td>
+        </tr>
+      \`).join('');
+    }
+
+    // ============================================
+    // WALLET CONNECTION (sats-connect)
+    // ============================================
     async function connectWallet() {
       try {
-        const response = await StacksConnect.showConnect({
-          appDetails,
-          onFinish: (data) => {
-            state.connected = true;
-            state.address = data.userSession.loadUserData().profile.stxAddress.mainnet;
-            onConnect();
-          },
-          onCancel: () => {
-            console.log('User cancelled');
-          },
-          userSession: new StacksConnect.UserSession()
+        // Check if sats-connect is available
+        if (typeof window.SatsConnect === 'undefined') {
+          alert('Please install Leather or Xverse wallet extension');
+          window.open('https://leather.io', '_blank');
+          return;
+        }
+
+        await window.SatsConnect.request('getAddresses', {
+          purposes: ['stacks'],
+          message: 'Connect to Yield Hunter'
+        }).then(response => {
+          if (response.status === 'success') {
+            const stacksAddr = response.result.addresses.find(a => a.purpose === 'stacks');
+            if (stacksAddr) {
+              state.connected = true;
+              state.address = stacksAddr.address;
+              onConnect();
+            }
+          }
         });
       } catch (err) {
         console.error('Connect error:', err);
-        alert('Failed to connect wallet. Make sure you have Leather or Xverse installed.');
+        // Fallback: try direct wallet detection
+        if (window.LeatherProvider || window.StacksProvider) {
+          try {
+            const provider = window.LeatherProvider || window.StacksProvider;
+            const response = await provider.request({ method: 'stx_requestAccounts' });
+            if (response && response.addresses && response.addresses.length > 0) {
+              state.connected = true;
+              state.address = response.addresses[0].address;
+              onConnect();
+              return;
+            }
+          } catch (e) {
+            console.error('Fallback connect failed:', e);
+          }
+        }
+        alert('Failed to connect. Please install Leather or Xverse wallet.');
       }
     }
 
@@ -1030,6 +1093,9 @@ const html = `<!DOCTYPE html>
 
       document.getElementById('depositBtn').textContent = 'Deposit BTC';
 
+      // Save session
+      saveWalletSession();
+
       refreshBalances();
       loadAgents();
       loadLeaderboard();
@@ -1039,6 +1105,7 @@ const html = `<!DOCTYPE html>
     function disconnectWallet() {
       state.connected = false;
       state.address = null;
+      clearWalletSession();
 
       document.getElementById('notConnected').style.display = 'block';
       document.getElementById('connectedViews').style.display = 'none';
@@ -1180,32 +1247,30 @@ const html = `<!DOCTYPE html>
       btn.innerHTML = '<span class="loading"></span> Deploying...';
 
       try {
-        // Build the contract call transaction
-        const txOptions = {
-          contractAddress: CONTRACTS.yieldHunter.split('.')[0],
-          contractName: CONTRACTS.yieldHunter.split('.')[1],
+        // Use sats-connect for contract call
+        const riskValue = risk === 'low' ? 30 : risk === 'high' ? 70 : 50;
+
+        await window.SatsConnect.request('stx_callContract', {
+          contract: CONTRACTS.yieldHunter,
           functionName: 'initialize-hunter',
           functionArgs: [
-            StacksTransactions.stringAsciiCV(name),
-            StacksTransactions.uintCV(Math.floor(funding * 100000000)),
-            StacksTransactions.uintCV(risk === 'low' ? 30 : risk === 'high' ? 70 : 50)
+            { type: 'string-ascii', value: name },
+            { type: 'uint', value: Math.floor(funding * 100000000).toString() },
+            { type: 'uint', value: riskValue.toString() }
           ],
-          network: NETWORK,
-          appDetails,
-          onFinish: (data) => {
-            alert('Agent deployment transaction submitted! TX: ' + data.txId);
+          network: 'mainnet'
+        }).then(response => {
+          if (response.status === 'success') {
+            alert('Agent deployment transaction submitted! TX: ' + response.result.txid);
             closeDeployModal();
             loadAgents();
-          },
-          onCancel: () => {
-            console.log('User cancelled');
+          } else {
+            throw new Error(response.error?.message || 'Transaction failed');
           }
-        };
-
-        await StacksConnect.openContractCall(txOptions);
+        });
       } catch (err) {
         console.error('Deploy error:', err);
-        alert('Failed to deploy agent: ' + err.message);
+        alert('Failed to deploy agent: ' + (err.message || 'Unknown error'));
       } finally {
         btn.disabled = false;
         btn.textContent = 'Deploy Agent';
@@ -1262,17 +1327,31 @@ const html = `<!DOCTYPE html>
       document.getElementById('depositAmount').dispatchEvent(new Event('input'));
     }
 
-    // Check if already connected on load
+    // Initialize on page load
     window.addEventListener('load', () => {
-      // Check for existing session
-      const userSession = new StacksConnect.UserSession();
-      if (userSession.isUserSignedIn()) {
-        const userData = userSession.loadUserData();
+      // Render hero leaderboard with Bitcoin Faces
+      renderHeroLeaderboard();
+
+      // Check localStorage for saved session
+      const savedAddress = localStorage.getItem('yh_wallet_address');
+      if (savedAddress) {
         state.connected = true;
-        state.address = userData.profile.stxAddress.mainnet;
+        state.address = savedAddress;
         onConnect();
       }
     });
+
+    // Save wallet address on connect
+    function saveWalletSession() {
+      if (state.address) {
+        localStorage.setItem('yh_wallet_address', state.address);
+      }
+    }
+
+    // Clear wallet session on disconnect
+    function clearWalletSession() {
+      localStorage.removeItem('yh_wallet_address');
+    }
 
     // Close mobile menu on outside click
     document.addEventListener('click', (e) => {
