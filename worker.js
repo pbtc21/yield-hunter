@@ -8,7 +8,6 @@ const html = `<!DOCTYPE html>
   <title>Yield Hunter | AIBTC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/sats-connect@3.0.2/dist/umd/index.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -326,13 +325,16 @@ const html = `<!DOCTYPE html>
     .agent-avatar {
       width: 40px;
       height: 40px;
-      border-radius: 50%;
+      border-radius: 8px;
       overflow: hidden;
       flex-shrink: 0;
+      background: var(--bg-subtle);
     }
+    .agent-avatar img,
     .agent-avatar svg {
       width: 100%;
       height: 100%;
+      object-fit: cover;
     }
     .agent-name { font-weight: 600; }
     .agent-addr {
@@ -916,90 +918,11 @@ const html = `<!DOCTYPE html>
     };
 
     // ============================================
-    // BITCOIN FACES - Deterministic avatar generator
+    // BITCOIN FACES - From bitcoinfaces.xyz API
     // ============================================
-    function generateBitcoinFace(seed) {
-      // Hash the seed to get consistent values
-      let hash = 0;
-      for (let i = 0; i < seed.length; i++) {
-        const char = seed.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      const h = Math.abs(hash);
-
-      // Color palette (Bitcoin/crypto themed)
-      const colors = [
-        ['#f7931a', '#c27214'], // Bitcoin orange
-        ['#627eea', '#4c66bb'], // Ethereum blue
-        ['#5546ff', '#3d32b3'], // Stacks purple
-        ['#00d4aa', '#00a888'], // Teal
-        ['#ff4f03', '#cc3f02'], // AIBTC orange
-        ['#8b5cf6', '#6d4ac4'], // Violet
-        ['#ec4899', '#be3a7a'], // Pink
-        ['#22c55e', '#1b9e4b'], // Green
-      ];
-      const [bg, accent] = colors[h % colors.length];
-
-      // Face features based on hash
-      const eyeStyle = (h >> 4) % 4;
-      const mouthStyle = (h >> 8) % 4;
-      const hasGlasses = (h >> 12) % 3 === 0;
-      const hasHat = (h >> 16) % 4 === 0;
-      const hasBitcoin = (h >> 20) % 3 === 0;
-
-      let svg = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40">
-        <rect width="40" height="40" rx="20" fill="\${bg}"/>
-        <rect x="8" y="8" width="24" height="24" rx="4" fill="\${accent}" opacity="0.3"/>\`;
-
-      // Eyes
-      if (eyeStyle === 0) {
-        svg += \`<circle cx="14" cy="16" r="3" fill="#fff"/><circle cx="26" cy="16" r="3" fill="#fff"/>
-                <circle cx="14" cy="16" r="1.5" fill="#000"/><circle cx="26" cy="16" r="1.5" fill="#000"/>\`;
-      } else if (eyeStyle === 1) {
-        svg += \`<rect x="11" y="14" width="6" height="4" rx="1" fill="#fff"/><rect x="23" y="14" width="6" height="4" rx="1" fill="#fff"/>
-                <circle cx="14" cy="16" r="1" fill="#000"/><circle cx="26" cy="16" r="1" fill="#000"/>\`;
-      } else if (eyeStyle === 2) {
-        svg += \`<line x1="11" y1="16" x2="17" y2="16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="23" y1="16" x2="29" y2="16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>\`;
-      } else {
-        svg += \`<circle cx="14" cy="16" r="4" fill="none" stroke="#fff" stroke-width="1.5"/>
-                <circle cx="26" cy="16" r="4" fill="none" stroke="#fff" stroke-width="1.5"/>
-                <circle cx="14" cy="16" r="1" fill="#fff"/><circle cx="26" cy="16" r="1" fill="#fff"/>\`;
-      }
-
-      // Mouth
-      if (mouthStyle === 0) {
-        svg += \`<path d="M15 26 Q20 30 25 26" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>\`;
-      } else if (mouthStyle === 1) {
-        svg += \`<rect x="16" y="25" width="8" height="3" rx="1.5" fill="#fff"/>\`;
-      } else if (mouthStyle === 2) {
-        svg += \`<circle cx="20" cy="27" r="3" fill="#fff"/>\`;
-      } else {
-        svg += \`<line x1="15" y1="27" x2="25" y2="27" stroke="#fff" stroke-width="2" stroke-linecap="round"/>\`;
-      }
-
-      // Glasses
-      if (hasGlasses) {
-        svg += \`<rect x="9" y="13" width="9" height="7" rx="2" fill="none" stroke="#000" stroke-width="1.5"/>
-                <rect x="22" y="13" width="9" height="7" rx="2" fill="none" stroke="#000" stroke-width="1.5"/>
-                <line x1="18" y1="16" x2="22" y2="16" stroke="#000" stroke-width="1.5"/>\`;
-      }
-
-      // Hat
-      if (hasHat) {
-        svg += \`<rect x="8" y="4" width="24" height="4" rx="2" fill="#000"/>
-                <rect x="12" y="1" width="16" height="5" rx="2" fill="#000"/>\`;
-      }
-
-      // Bitcoin symbol
-      if (hasBitcoin) {
-        svg += \`<circle cx="32" cy="8" r="6" fill="#f7931a"/>
-                <text x="32" y="11" text-anchor="middle" fill="#fff" font-size="8" font-weight="bold">₿</text>\`;
-      }
-
-      svg += \`</svg>\`;
-      return svg;
+    function getBitcoinFaceUrl(address) {
+      // Use the official Bitcoin Faces API
+      return \`https://bitcoinfaces.xyz/api/get-image?name=\${address.toLowerCase()}\`;
     }
 
     // Placeholder agents for leaderboard
@@ -1021,7 +944,9 @@ const html = `<!DOCTYPE html>
           <td style="font-weight: 700; color: \${i === 0 ? 'var(--orange)' : 'var(--text-muted)'};">\${i + 1}</td>
           <td>
             <div class="agent-cell">
-              <div class="agent-avatar">\${generateBitcoinFace(agent.addr)}</div>
+              <div class="agent-avatar">
+                <img src="\${getBitcoinFaceUrl(agent.addr)}" alt="\${agent.name}" loading="lazy" />
+              </div>
               <div>
                 <div class="agent-name">\${agent.name}</div>
                 <div class="agent-addr">\${agent.addr.slice(0,4)}...\${agent.addr.slice(-4)}</div>
@@ -1036,48 +961,80 @@ const html = `<!DOCTYPE html>
     }
 
     // ============================================
-    // WALLET CONNECTION (sats-connect)
+    // WALLET CONNECTION
     // ============================================
     async function connectWallet() {
-      try {
-        // Check if sats-connect is available
-        if (typeof window.SatsConnect === 'undefined') {
-          alert('Please install Leather or Xverse wallet extension');
-          window.open('https://leather.io', '_blank');
+      // Try Leather/Hiro wallet first (window.StacksProvider)
+      const provider = window.StacksProvider || window.LeatherProvider;
+
+      if (provider) {
+        try {
+          console.log('Found Stacks provider, requesting accounts...');
+          const response = await provider.request({ method: 'stx_requestAccounts' });
+          console.log('Provider response:', response);
+
+          if (response && response.addresses && response.addresses.length > 0) {
+            // Find the mainnet stacks address
+            const mainnetAddr = response.addresses.find(a =>
+              a.address && a.address.startsWith('SP')
+            ) || response.addresses[0];
+
+            if (mainnetAddr && mainnetAddr.address) {
+              state.connected = true;
+              state.address = mainnetAddr.address;
+              onConnect();
+              return;
+            }
+          }
+
+          // Alternative response format
+          if (response && response.result && response.result.addresses) {
+            const addr = response.result.addresses.find(a => a.address?.startsWith('SP'));
+            if (addr) {
+              state.connected = true;
+              state.address = addr.address;
+              onConnect();
+              return;
+            }
+          }
+
+          throw new Error('No valid address returned');
+        } catch (err) {
+          console.error('Wallet connect error:', err);
+          alert('Connection failed: ' + (err.message || 'Please try again'));
           return;
         }
+      }
 
-        await window.SatsConnect.request('getAddresses', {
-          purposes: ['stacks'],
-          message: 'Connect to Yield Hunter'
-        }).then(response => {
-          if (response.status === 'success') {
-            const stacksAddr = response.result.addresses.find(a => a.purpose === 'stacks');
+      // Try Xverse via WBIP (Wallet Bitcoin Improvement Proposal)
+      if (window.btc) {
+        try {
+          const response = await window.btc.request('getAddresses', {
+            purposes: ['stacks']
+          });
+          if (response && response.result) {
+            const stacksAddr = response.result.addresses?.find(a => a.purpose === 'stacks');
             if (stacksAddr) {
               state.connected = true;
               state.address = stacksAddr.address;
               onConnect();
-            }
-          }
-        });
-      } catch (err) {
-        console.error('Connect error:', err);
-        // Fallback: try direct wallet detection
-        if (window.LeatherProvider || window.StacksProvider) {
-          try {
-            const provider = window.LeatherProvider || window.StacksProvider;
-            const response = await provider.request({ method: 'stx_requestAccounts' });
-            if (response && response.addresses && response.addresses.length > 0) {
-              state.connected = true;
-              state.address = response.addresses[0].address;
-              onConnect();
               return;
             }
-          } catch (e) {
-            console.error('Fallback connect failed:', e);
           }
+        } catch (err) {
+          console.error('Xverse connect error:', err);
         }
-        alert('Failed to connect. Please install Leather or Xverse wallet.');
+      }
+
+      // No wallet found - show install options
+      const choice = confirm(
+        'No Stacks wallet detected.\\n\\n' +
+        'Click OK to install Leather wallet, or Cancel for Xverse.'
+      );
+      if (choice) {
+        window.open('https://leather.io/install-extension', '_blank');
+      } else {
+        window.open('https://www.xverse.app/download', '_blank');
       }
     }
 
@@ -1247,30 +1204,45 @@ const html = `<!DOCTYPE html>
       btn.innerHTML = '<span class="loading"></span> Deploying...';
 
       try {
-        // Use sats-connect for contract call
-        const riskValue = risk === 'low' ? 30 : risk === 'high' ? 70 : 50;
+        const provider = window.StacksProvider || window.LeatherProvider;
+        if (!provider) {
+          throw new Error('No wallet connected');
+        }
 
-        await window.SatsConnect.request('stx_callContract', {
-          contract: CONTRACTS.yieldHunter,
-          functionName: 'initialize-hunter',
-          functionArgs: [
-            { type: 'string-ascii', value: name },
-            { type: 'uint', value: Math.floor(funding * 100000000).toString() },
-            { type: 'uint', value: riskValue.toString() }
-          ],
-          network: 'mainnet'
-        }).then(response => {
-          if (response.status === 'success') {
-            alert('Agent deployment transaction submitted! TX: ' + response.result.txid);
-            closeDeployModal();
-            loadAgents();
-          } else {
-            throw new Error(response.error?.message || 'Transaction failed');
+        const riskValue = risk === 'low' ? 30 : risk === 'high' ? 70 : 50;
+        const [contractAddress, contractName] = CONTRACTS.yieldHunter.split('.');
+
+        // Call contract via wallet provider
+        const response = await provider.request({
+          method: 'stx_callContract',
+          params: {
+            contract: CONTRACTS.yieldHunter,
+            functionName: 'initialize-hunter',
+            functionArgs: [
+              { type: 'string-ascii', value: name },
+              { type: 'uint', value: String(Math.floor(funding * 100000000)) },
+              { type: 'uint', value: String(riskValue) }
+            ],
+            network: 'mainnet',
+            postConditionMode: 'deny'
           }
         });
+
+        if (response && (response.txId || response.result?.txId)) {
+          const txId = response.txId || response.result?.txId;
+          alert('Agent deployment submitted! TX: ' + txId);
+          closeDeployModal();
+          loadAgents();
+        } else {
+          throw new Error('Transaction was cancelled or failed');
+        }
       } catch (err) {
         console.error('Deploy error:', err);
-        alert('Failed to deploy agent: ' + (err.message || 'Unknown error'));
+        if (err.message?.includes('User rejected') || err.message?.includes('cancelled')) {
+          // User cancelled - don't show error
+        } else {
+          alert('Failed to deploy: ' + (err.message || 'Unknown error'));
+        }
       } finally {
         btn.disabled = false;
         btn.textContent = 'Deploy Agent';
