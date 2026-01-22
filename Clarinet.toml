@@ -6,6 +6,7 @@ telemetry = false
 cache_dir = "./.cache"
 requirements = []
 
+# Core contracts
 [contracts.yield-hunter]
 path = "contracts/yield-hunter/yield-hunter.clar"
 
@@ -14,6 +15,29 @@ path = "contracts/yield-hunter/yield-hunter-adapter.clar"
 
 [contracts.yield-hunter-oracle]
 path = "contracts/yield-hunter/yield-hunter-oracle.clar"
+
+[contracts.agent-lifecycle]
+path = "contracts/yield-hunter/agent-lifecycle.clar"
+
+# Adapter trait
+[contracts.adapter-trait]
+path = "contracts/yield-hunter/adapter-trait.clar"
+
+# Protocol adapters
+[contracts.bitflow-adapter]
+path = "contracts/yield-hunter/bitflow-adapter.clar"
+
+[contracts.alex-adapter]
+path = "contracts/yield-hunter/alex-adapter.clar"
+
+[contracts.hermetica-adapter]
+path = "contracts/yield-hunter/hermetica-adapter.clar"
+
+[contracts.zest-adapter]
+path = "contracts/yield-hunter/zest-adapter.clar"
+
+[contracts.arkadiko-adapter]
+path = "contracts/yield-hunter/arkadiko-adapter.clar"
 
 # External contract references (deployed on mainnet/testnet)
 [contracts.sbtc-token]

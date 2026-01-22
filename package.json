@@ -7,16 +7,22 @@
     "scan": "bun run src/yield-hunter/scanning/scan-pools.ts",
     "hunt": "bun run src/yield-hunter/execution/hunt-yield.ts",
     "birth": "bun run src/yield-hunter/lifecycle/birth-hunter.ts",
-    "check": "cd contracts && clarinet check",
-    "test": "cd contracts && clarinet test",
-    "deploy:contracts": "bun run scripts/deploy-contracts.ts",
+    "agent": "bun run scripts/run-agent.ts",
+    "deploy": "bun run scripts/deploy.ts",
+    "check": "clarinet check",
+    "test": "clarinet test",
+    "deploy:contracts": "bun run scripts/deploy.ts",
     "deploy:leaderboard": "bun run wrangler deploy --config wrangler.leaderboard.toml",
     "dev:leaderboard": "bun run wrangler dev --config wrangler.leaderboard.toml",
-    "console": "cd contracts && clarinet console"
+    "console": "clarinet console"
   },
   "dependencies": {
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.13.0",
+    "@stacks/connect": "^7.0.0",
+    "@faktoryfun/styx-sdk": "^1.0.0",
+    "sats-connect": "^2.0.0",
+    "@tanstack/react-query": "^5.0.0",
     "hono": "^4.0.0"
   },
   "devDependencies": {
