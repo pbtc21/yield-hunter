@@ -146,14 +146,14 @@
       data (map-set lend-positions { user: tx-sender, pool-id: pool-id }
         (merge data {
           principal-lent: (+ (get principal-lent data) amount),
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
       (map-set lend-positions { user: tx-sender, pool-id: pool-id } {
         principal-lent: amount,
         interest-earned: u0,
-        entry-block: stacks-block-height,
-        last-update-block: stacks-block-height
+        entry-block: block-height,
+        last-update-block: block-height
       })
     )
 
@@ -183,7 +183,7 @@
       (interest (calculate-lend-interest
         (get principal-lent position)
         (get supply-rate pool-data)
-        (- stacks-block-height (get last-update-block position))
+        (- block-height (get last-update-block position))
       ))
       (total-withdraw (+ amount interest))
     )
@@ -200,7 +200,7 @@
           (merge position {
             principal-lent: (- (get principal-lent position) amount),
             interest-earned: (+ (get interest-earned position) interest),
-            last-update-block: stacks-block-height
+            last-update-block: block-height
           })
         )
       )
@@ -232,14 +232,14 @@
           (interest (calculate-lend-interest
             (get principal-lent pos)
             (get supply-rate pdata)
-            (- stacks-block-height (get last-update-block pos))
+            (- block-height (get last-update-block pos))
           ))
         )
           ;; In production: claim ZEST rewards too
           (map-set lend-positions { user: tx-sender, pool-id: pool-id }
             (merge pos {
               interest-earned: (+ (get interest-earned pos) interest),
-              last-update-block: stacks-block-height
+              last-update-block: block-height
             })
           )
 
@@ -273,7 +273,7 @@
           (interest (calculate-lend-interest
             (get principal-lent pos)
             (get supply-rate pdata)
-            (- stacks-block-height (get last-update-block pos))
+            (- block-height (get last-update-block pos))
           ))
         )
           (ok (+ (get principal-lent pos) (get interest-earned pos) interest))
@@ -300,15 +300,15 @@
       data (map-set borrow-positions { user: tx-sender, pool-id: pool-id }
         (merge data {
           collateral: (+ (get collateral data) amount),
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
       (map-set borrow-positions { user: tx-sender, pool-id: pool-id } {
         collateral: amount,
         borrowed: u0,
         interest-owed: u0,
-        entry-block: stacks-block-height,
-        last-update-block: stacks-block-height
+        entry-block: block-height,
+        last-update-block: block-height
       })
     )
 
@@ -342,7 +342,7 @@
         (map-set borrow-positions { user: tx-sender, pool-id: pool-id }
           (merge position {
             collateral: new-collateral,
-            last-update-block: stacks-block-height
+            last-update-block: block-height
           })
         )
       )
@@ -382,7 +382,7 @@
       (map-set borrow-positions { user: tx-sender, pool-id: pool-id }
         (merge position {
           borrowed: new-borrowed,
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
 
@@ -411,7 +411,7 @@
     (map-set borrow-positions { user: tx-sender, pool-id: pool-id }
       (merge position {
         borrowed: (- (get borrowed position) actual-repay),
-        last-update-block: stacks-block-height
+        last-update-block: block-height
       })
     )
 
@@ -489,7 +489,7 @@
           total-borrowed: new-borrowed,
           supply-rate: (get supply-rate new-rates),
           borrow-rate: (get borrow-rate new-rates),
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
       (map-set pool-state pool-id {
@@ -500,7 +500,7 @@
         borrow-rate: (get borrow-rate new-rates),
         collateral-factor: DEFAULT_COLLATERAL_FACTOR,
         paused: false,
-        last-update-block: stacks-block-height
+        last-update-block: block-height
       })
     )
     true

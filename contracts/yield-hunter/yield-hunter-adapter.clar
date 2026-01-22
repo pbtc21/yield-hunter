@@ -9,7 +9,7 @@
 ;; ============================================
 
 (use-trait xyk-pool-trait .xyk-pool-trait.xyk-pool-trait)
-(use-trait ft-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
+(use-trait ft-trait .sip-010-trait.sip-010-trait)
 
 ;; ============================================
 ;; CONSTANTS
@@ -103,7 +103,7 @@
       (asserts! (>= expected-out min-out) ERR_SLIPPAGE_EXCEEDED)
 
       ;; Transfer sBTC to this contract
-      (try! (contract-call? SBTC_TOKEN transfer amount-in sender (as-contract tx-sender) none))
+      (try! (contract-call? .sbtc-token transfer amount-in sender (as-contract tx-sender) none))
 
       ;; Execute swap
       (let ((actual-out (try! (as-contract (contract-call? pool swap-x-for-y amount-in (some min-out))))))
@@ -122,7 +122,7 @@
             amount-in: amount-in,
             amount-out: actual-out,
             direction: "x-to-y",
-            block: stacks-block-height
+            block: block-height
           }
         })
 
@@ -159,7 +159,7 @@
       (let ((actual-out (try! (as-contract (contract-call? pool swap-y-for-x amount-in (some min-out))))))
 
         ;; Transfer sBTC back to sender
-        (try! (as-contract (contract-call? SBTC_TOKEN transfer actual-out tx-sender sender none)))
+        (try! (as-contract (contract-call? .sbtc-token transfer actual-out tx-sender sender none)))
 
         ;; Update stats
         (update-user-stats sender amount-in actual-out)
@@ -175,7 +175,7 @@
             amount-in: amount-in,
             amount-out: actual-out,
             direction: "y-to-x",
-            block: stacks-block-height
+            block: block-height
           }
         })
 
@@ -203,7 +203,7 @@
     (asserts! (> sbtc-amount u0) ERR_INVALID_AMOUNT)
 
     ;; Transfer sBTC to this contract
-    (try! (contract-call? SBTC_TOKEN transfer sbtc-amount sender (as-contract tx-sender) none))
+    (try! (contract-call? .sbtc-token transfer sbtc-amount sender (as-contract tx-sender) none))
 
     ;; Add liquidity (single-sided: only sBTC)
     (let ((lp-received (try! (as-contract (contract-call? pool add-liquidity sbtc-amount u0 (some min-lp-tokens))))))
@@ -226,7 +226,7 @@
           pool: pool-principal,
           sbtc-amount: sbtc-amount,
           lp-received: lp-received,
-          block: stacks-block-height
+          block: block-height
         }
       })
 
@@ -252,7 +252,7 @@
     (asserts! (> amount-y u0) ERR_INVALID_AMOUNT)
 
     ;; Transfer tokens to this contract
-    (try! (contract-call? SBTC_TOKEN transfer amount-x sender (as-contract tx-sender) none))
+    (try! (contract-call? .sbtc-token transfer amount-x sender (as-contract tx-sender) none))
     (try! (contract-call? token-y transfer amount-y sender (as-contract tx-sender) none))
 
     ;; Add liquidity
@@ -270,7 +270,7 @@
           amount-x: amount-x,
           amount-y: amount-y,
           lp-received: lp-received,
-          block: stacks-block-height
+          block: block-height
         }
       })
 
@@ -302,7 +302,7 @@
         (asserts! (>= received-x min-sbtc) ERR_SLIPPAGE_EXCEEDED)
 
         ;; Transfer tokens back to sender
-        (try! (as-contract (contract-call? SBTC_TOKEN transfer received-x tx-sender sender none)))
+        (try! (as-contract (contract-call? .sbtc-token transfer received-x tx-sender sender none)))
         ;; Token Y transfer would go here in production
 
         ;; Emit event
@@ -314,7 +314,7 @@
             lp-amount: lp-amount,
             received-x: received-x,
             received-y: received-y,
-            block: stacks-block-height
+            block: block-height
           }
         })
 
@@ -418,7 +418,9 @@
   }
 )
 
-(define-read-only (get-expected-output
+;; Note: Must be public because it calls external contract via trait
+;; The underlying get-dy/get-dx are read-only but Clarity requires public for trait calls
+(define-public (get-expected-output
     (pool <xyk-pool-trait>)
     (amount-in uint)
     (direction (string-ascii 8))

@@ -12,7 +12,7 @@
 ;; ============================================
 
 (use-trait xyk-pool-trait .xyk-pool-trait.xyk-pool-trait)
-(use-trait ft-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
+(use-trait ft-trait .sip-010-trait.sip-010-trait)
 
 ;; ============================================
 ;; CONSTANTS
@@ -60,6 +60,10 @@
 (define-data-var next-position-id uint u1)
 (define-data-var total-hunters uint u0)
 (define-data-var total-yields-distributed uint u0)
+
+;; Governance - Contract administrator for pool approvals
+;; SECURITY: Only this address can approve/revoke pools
+(define-data-var contract-admin principal tx-sender)
 
 ;; ============================================
 ;; DATA MAPS
@@ -175,13 +179,13 @@
       agent: agent,
       bitcoin-agent-id: bitcoin-agent-id,
       identity-id: identity-id,
-      initialized-at: stacks-block-height,
+      initialized-at: block-height,
       total-invested: u0,
       total-yields-earned: u0,
       total-positions-opened: u0,
       total-positions-closed: u0,
-      last-hunt-block: stacks-block-height,
-      last-profitable-block: stacks-block-height,
+      last-hunt-block: block-height,
+      last-profitable-block: block-height,
       peak-portfolio-value: u0,
       alive: true,
       strategy-config: {
@@ -207,7 +211,7 @@
         agent: agent,
         bitcoin-agent-id: bitcoin-agent-id,
         identity-id: identity-id,
-        block: stacks-block-height
+        block: block-height
       }
     })
 
@@ -248,7 +252,7 @@
 
     ;; Transfer sBTC from hunter-account to this contract
     ;; Note: In production, this would go through agent-account's as-contract
-    (try! (contract-call? SBTC_TOKEN transfer amount hunter-account (as-contract tx-sender) none))
+    (try! (contract-call? .sbtc-token transfer amount hunter-account (as-contract tx-sender) none))
 
     ;; Add liquidity to pool (single-sided for simplicity)
     ;; In production, would use the adapter for proper liquidity addition
@@ -265,10 +269,10 @@
         token-y: SBTC_TOKEN, ;; Simplified; would be actual token-y
         amount-invested: amount,
         lp-tokens-held: lp-received,
-        entry-block: stacks-block-height,
+        entry-block: block-height,
         entry-price-x: SCALE, ;; Simplified; would be actual price
         entry-price-y: SCALE,
-        last-compound-block: stacks-block-height,
+        last-compound-block: block-height,
         risk-score: risk-score,
         active: true
       })
@@ -283,7 +287,7 @@
         (merge hunter-data {
           total-invested: (+ (get total-invested hunter-data) amount),
           total-positions-opened: (+ (get total-positions-opened hunter-data) u1),
-          last-hunt-block: stacks-block-height,
+          last-hunt-block: block-height,
           peak-portfolio-value: (if (> (+ (get total-invested hunter-data) amount) (get peak-portfolio-value hunter-data))
             (+ (get total-invested hunter-data) amount)
             (get peak-portfolio-value hunter-data)
@@ -304,7 +308,7 @@
           amount: amount,
           lp-tokens: lp-received,
           risk-score: risk-score,
-          block: stacks-block-height
+          block: block-height
         }
       })
 
@@ -348,7 +352,7 @@
               (merge position-data {
                 amount-invested: (+ (get amount-invested position-data) rewards),
                 lp-tokens-held: (+ (get lp-tokens-held position-data) additional-lp),
-                last-compound-block: stacks-block-height
+                last-compound-block: block-height
               })
             )
 
@@ -356,7 +360,7 @@
             (map-set hunters hunter-account
               (merge hunter-data {
                 total-yields-earned: (+ (get total-yields-earned hunter-data) rewards),
-                last-profitable-block: stacks-block-height
+                last-profitable-block: block-height
               })
             )
 
@@ -371,7 +375,7 @@
                 position-id: position-id,
                 rewards: rewards,
                 additional-lp: additional-lp,
-                block: stacks-block-height
+                block: block-height
               }
             })
 
@@ -410,7 +414,7 @@
       (asserts! (>= received-x min-receive) ERR_SLIPPAGE_EXCEEDED)
 
       ;; Transfer sBTC back to hunter-account
-      (try! (as-contract (contract-call? SBTC_TOKEN transfer received-x tx-sender hunter-account none)))
+      (try! (as-contract (contract-call? .sbtc-token transfer received-x tx-sender hunter-account none)))
 
       ;; Calculate profit/loss
       (let (
@@ -432,7 +436,7 @@
             total-invested: (- (get total-invested hunter-data) invested),
             total-yields-earned: (+ (get total-yields-earned hunter-data) profit),
             total-positions-closed: (+ (get total-positions-closed hunter-data) u1),
-            last-profitable-block: (if (> profit u0) stacks-block-height (get last-profitable-block hunter-data))
+            last-profitable-block: (if (> profit u0) block-height (get last-profitable-block hunter-data))
           })
         )
 
@@ -446,7 +450,7 @@
             received: received-x,
             profit: profit,
             loss: loss,
-            block: stacks-block-height
+            block: block-height
           }
         })
 
@@ -469,7 +473,7 @@
     (asserts! (get alive hunter-data) ERR_AGENT_DEAD)
 
     (let (
-      (blocks-since-profit (- stacks-block-height (get last-profitable-block hunter-data)))
+      (blocks-since-profit (- block-height (get last-profitable-block hunter-data)))
       (current-value (get total-invested hunter-data))
       (peak-value (get peak-portfolio-value hunter-data))
       (drawdown-bps (if (> peak-value u0)
@@ -515,8 +519,8 @@
         total-yields-earned: (get total-yields-earned hunter-data),
         positions-opened: (get total-positions-opened hunter-data),
         positions-closed: (get total-positions-closed hunter-data),
-        lifespan-blocks: (- stacks-block-height (get initialized-at hunter-data)),
-        block: stacks-block-height
+        lifespan-blocks: (- block-height (get initialized-at hunter-data)),
+        block: block-height
       }
     })
 
@@ -569,6 +573,7 @@
 )
 
 ;; Approve a pool for hunting
+;; SECURITY: Only contract admin can approve pools
 (define-public (approve-pool
     (pool-contract principal)
     (token-x principal)
@@ -577,13 +582,15 @@
     (max-risk-score uint)
   )
   (begin
-    ;; In production, this would have governance controls
+    ;; CRITICAL: Only admin can approve pools
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR_NOT_AUTHORIZED)
+
     (map-set approved-pools pool-contract {
       token-x: token-x,
       token-y: token-y,
       min-liquidity: min-liquidity,
       max-risk-score: max-risk-score,
-      approved-at: stacks-block-height
+      approved-at: block-height
     })
 
     (print {
@@ -599,6 +606,43 @@
 
     (ok true)
   )
+)
+
+;; Revoke pool approval
+;; SECURITY: Only contract admin can revoke pools
+(define-public (revoke-pool (pool-contract principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR_NOT_AUTHORIZED)
+    (map-delete approved-pools pool-contract)
+
+    (print {
+      notification: "yield-hunter/PoolRevoked",
+      payload: { pool: pool-contract }
+    })
+
+    (ok true)
+  )
+)
+
+;; Transfer admin role
+;; SECURITY: Only current admin can transfer role
+(define-public (set-contract-admin (new-admin principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get contract-admin)) ERR_NOT_AUTHORIZED)
+    (var-set contract-admin new-admin)
+
+    (print {
+      notification: "yield-hunter/AdminTransferred",
+      payload: { old-admin: tx-sender, new-admin: new-admin }
+    })
+
+    (ok true)
+  )
+)
+
+;; Get current admin
+(define-read-only (get-contract-admin)
+  (var-get contract-admin)
 )
 
 ;; ============================================

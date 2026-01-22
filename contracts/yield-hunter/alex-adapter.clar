@@ -135,13 +135,13 @@
   )
     (match position
       data (let (
-        (blocks-elapsed (- stacks-block-height (get last-update-block data)))
+        (blocks-elapsed (- block-height (get last-update-block data)))
         (rewards (calculate-pending-rewards (get supplied data) blocks-elapsed))
       )
         ;; Update position
         (map-set lending-positions
           { user: tx-sender, token: token }
-          (merge data { last-update-block: stacks-block-height })
+          (merge data { last-update-block: block-height })
         )
 
         (print {
@@ -185,7 +185,7 @@
       borrow-rate: u800,
       collateral-factor: DEFAULT_COLLATERAL_FACTOR,
       utilization: u0,
-      last-updated: stacks-block-height
+      last-updated: block-height
     } (map-get? market-cache token)))
   )
     ;; In production: transfer tokens to ALEX vault
@@ -197,7 +197,7 @@
         { user: tx-sender, token: token }
         (merge data {
           supplied: (+ (get supplied data) amount),
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
       (map-set lending-positions
@@ -206,8 +206,8 @@
           supplied: amount,
           borrowed: u0,
           collateral-factor: (get collateral-factor market),
-          entry-block: stacks-block-height,
-          last-update-block: stacks-block-height
+          entry-block: block-height,
+          last-update-block: block-height
         }
       )
     )
@@ -247,7 +247,7 @@
           { user: tx-sender, token: token }
           (merge position {
             supplied: new-supplied,
-            last-update-block: stacks-block-height
+            last-update-block: block-height
           })
         )
       )
@@ -286,7 +286,7 @@
         { user: tx-sender, token: token }
         (merge position {
           borrowed: new-borrowed,
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
 
@@ -316,7 +316,7 @@
       { user: tx-sender, token: token }
       (merge position {
         borrowed: (- (get borrowed position) actual-repay),
-        last-update-block: stacks-block-height
+        last-update-block: block-height
       })
     )
 

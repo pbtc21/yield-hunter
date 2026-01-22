@@ -223,12 +223,12 @@
     (match existing
       data (begin
         ;; Accrue stability fee
-        (let ((accrued-fee (calculate-stability-fee (get debt data) (- stacks-block-height (get last-update-block data)))))
+        (let ((accrued-fee (calculate-stability-fee (get debt data) (- block-height (get last-update-block data)))))
           (map-set cdp-vaults { user: tx-sender, collateral-type: token }
             (merge data {
               collateral: (+ (get collateral data) amount),
               stability-fee: (+ (get stability-fee data) accrued-fee),
-              last-update-block: stacks-block-height
+              last-update-block: block-height
             })
           )
         )
@@ -239,8 +239,8 @@
           collateral: amount,
           debt: u0,
           stability-fee: u0,
-          entry-block: stacks-block-height,
-          last-update-block: stacks-block-height
+          entry-block: block-height,
+          last-update-block: block-height
         })
         (ok amount)
       )
@@ -266,7 +266,7 @@
         (map-set cdp-vaults { user: tx-sender, collateral-type: token }
           (merge cdp {
             collateral: new-collateral,
-            last-update-block: stacks-block-height
+            last-update-block: block-height
           })
         )
       )
@@ -295,7 +295,7 @@
       (map-set cdp-vaults { user: tx-sender, collateral-type: collateral-type }
         (merge cdp {
           debt: new-debt,
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
 
@@ -313,7 +313,7 @@
   (let ((cdp (unwrap! (map-get? cdp-vaults { user: tx-sender, collateral-type: collateral-type }) ERR_VAULT_NOT_FOUND)))
     (let (
       (actual-burn (if (> amount (get debt cdp)) (get debt cdp) amount))
-      (accrued-fee (calculate-stability-fee (get debt cdp) (- stacks-block-height (get last-update-block cdp))))
+      (accrued-fee (calculate-stability-fee (get debt cdp) (- block-height (get last-update-block cdp))))
     )
       ;; In production: burn USDA
       ;; Update CDP
@@ -321,7 +321,7 @@
         (merge cdp {
           debt: (- (get debt cdp) actual-burn),
           stability-fee: (+ (get stability-fee cdp) accrued-fee),
-          last-update-block: stacks-block-height
+          last-update-block: block-height
         })
       )
 
@@ -344,13 +344,13 @@
     ;; In production: transfer USDA to staking pool
     (match existing
       data (let (
-        (pending-rewards (calculate-staking-rewards (get staked data) (- stacks-block-height (get last-claim-block data))))
+        (pending-rewards (calculate-staking-rewards (get staked data) (- block-height (get last-claim-block data))))
       )
         (map-set usda-stakes tx-sender
           (merge data {
             staked: (+ (get staked data) amount),
             rewards-earned: (+ (get rewards-earned data) pending-rewards),
-            last-claim-block: stacks-block-height
+            last-claim-block: block-height
           })
         )
         (ok amount)
@@ -359,8 +359,8 @@
         (map-set usda-stakes tx-sender {
           staked: amount,
           rewards-earned: u0,
-          entry-block: stacks-block-height,
-          last-claim-block: stacks-block-height
+          entry-block: block-height,
+          last-claim-block: block-height
         })
         (ok amount)
       )
@@ -373,7 +373,7 @@
     (asserts! (>= (get staked stake) amount) ERR_INVALID_AMOUNT)
 
     (let (
-      (pending-rewards (calculate-staking-rewards (get staked stake) (- stacks-block-height (get last-claim-block stake))))
+      (pending-rewards (calculate-staking-rewards (get staked stake) (- block-height (get last-claim-block stake))))
       (new-staked (- (get staked stake) amount))
     )
       ;; In production: withdraw from staking pool
@@ -383,7 +383,7 @@
           (merge stake {
             staked: new-staked,
             rewards-earned: (+ (get rewards-earned stake) pending-rewards),
-            last-claim-block: stacks-block-height
+            last-claim-block: block-height
           })
         )
       )
@@ -401,14 +401,14 @@
 (define-private (claim-staking-rewards)
   (let ((stake (unwrap! (map-get? usda-stakes tx-sender) ERR_STAKE_NOT_FOUND)))
     (let (
-      (pending-rewards (calculate-staking-rewards (get staked stake) (- stacks-block-height (get last-claim-block stake))))
+      (pending-rewards (calculate-staking-rewards (get staked stake) (- block-height (get last-claim-block stake))))
       (total-rewards (+ (get rewards-earned stake) pending-rewards))
     )
       ;; In production: mint DIKO rewards
       (map-set usda-stakes tx-sender
         (merge stake {
           rewards-earned: u0,
-          last-claim-block: stacks-block-height
+          last-claim-block: block-height
         })
       )
 
@@ -495,7 +495,7 @@
   (let ((stake (map-get? usda-stakes user)))
     (match stake
       data (+ (get rewards-earned data)
-        (calculate-staking-rewards (get staked data) (- stacks-block-height (get last-claim-block data)))
+        (calculate-staking-rewards (get staked data) (- block-height (get last-claim-block data)))
       )
       u0
     )

@@ -18,10 +18,12 @@
 (define-constant ERR_WITHDRAWAL_LOCKED (err u4006))
 (define-constant ERR_VAULT_FULL (err u4007))
 
-;; Hermetica contract references (mainnet)
-(define-constant HERMETICA_VAULT 'SP2XK4HJX2YJ3Y1FME2SCGPX8VCR2Y9RC0YZ7TBAJ.hermetica-vault-v1)
-(define-constant HBTC_TOKEN 'SP2XK4HJX2YJ3Y1FME2SCGPX8VCR2Y9RC0YZ7TBAJ.hbtc-token)
-(define-constant SBTC_TOKEN 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token)
+;; Hermetica contract references
+;; Note: These are placeholder addresses for devnet/testing
+;; Replace with actual mainnet addresses when deploying to production
+(define-constant HERMETICA_VAULT .hermetica-adapter)  ;; Self-reference for devnet
+(define-constant HBTC_TOKEN .sbtc-token)              ;; Uses local sbtc-token
+(define-constant SBTC_TOKEN .sbtc-token)              ;; Uses local sbtc-token
 
 ;; Scale factors
 (define-constant SCALE u100000000)  ;; 1e8
@@ -116,7 +118,7 @@
       (asserts! (>= shares-to-mint min-shares) ERR_MIN_DEPOSIT)
 
       ;; In production: transfer sBTC to Hermetica vault
-      ;; (contract-call? SBTC_TOKEN transfer amount tx-sender HERMETICA_VAULT none)
+      ;; (contract-call? .sbtc-token transfer amount tx-sender HERMETICA_VAULT none)
 
       ;; Update vault state
       (var-set vault-total-deposits (+ current-total amount))
@@ -128,14 +130,14 @@
           (merge data {
             deposited: (+ (get deposited data) amount),
             shares: (+ (get shares data) shares-to-mint),
-            last-claim-block: stacks-block-height
+            last-claim-block: block-height
           })
         )
         (map-set vault-positions tx-sender {
           deposited: amount,
           shares: shares-to-mint,
-          entry-block: stacks-block-height,
-          last-claim-block: stacks-block-height,
+          entry-block: block-height,
+          last-claim-block: block-height,
           pending-withdrawal: u0,
           withdrawal-unlock-block: u0
         })
@@ -169,7 +171,7 @@
     ;; Check if withdrawal is locked
     (if (> (get pending-withdrawal position) u0)
       ;; Complete pending withdrawal if unlocked
-      (if (>= stacks-block-height (get withdrawal-unlock-block position))
+      (if (>= block-height (get withdrawal-unlock-block position))
         (complete-withdrawal tx-sender)
         ERR_WITHDRAWAL_LOCKED
       )
@@ -178,7 +180,7 @@
         (map-set vault-positions tx-sender
           (merge position {
             pending-withdrawal: withdrawal-amount,
-            withdrawal-unlock-block: (+ stacks-block-height WITHDRAWAL_LOCK_BLOCKS),
+            withdrawal-unlock-block: (+ block-height WITHDRAWAL_LOCK_BLOCKS),
             shares: (- (get shares position) shares)
           })
         )
@@ -192,7 +194,7 @@
             user: tx-sender,
             shares: shares,
             amount: withdrawal-amount,
-            unlock-block: (+ stacks-block-height WITHDRAWAL_LOCK_BLOCKS)
+            unlock-block: (+ block-height WITHDRAWAL_LOCK_BLOCKS)
           }
         })
 
@@ -205,7 +207,7 @@
 (define-public (claim-rewards (vault principal))
   (let (
     (position (unwrap! (map-get? vault-positions tx-sender) ERR_POSITION_NOT_FOUND))
-    (blocks-elapsed (- stacks-block-height (get last-claim-block position)))
+    (blocks-elapsed (- block-height (get last-claim-block position)))
     (user-shares (get shares position))
     (total-shares (var-get vault-total-shares))
   )
@@ -219,7 +221,7 @@
         ;; In production: mint hBTC rewards
         ;; Update position
         (map-set vault-positions tx-sender
-          (merge position { last-claim-block: stacks-block-height })
+          (merge position { last-claim-block: block-height })
         )
 
         (print {
@@ -260,7 +262,7 @@
     (position (unwrap! (map-get? vault-positions user) ERR_POSITION_NOT_FOUND))
   )
     (asserts! (> (get pending-withdrawal position) u0) ERR_POSITION_NOT_FOUND)
-    (asserts! (>= stacks-block-height (get withdrawal-unlock-block position)) ERR_WITHDRAWAL_LOCKED)
+    (asserts! (>= block-height (get withdrawal-unlock-block position)) ERR_WITHDRAWAL_LOCKED)
 
     (let (
       (amount (get pending-withdrawal position))
@@ -365,8 +367,8 @@
       data {
         amount: (get pending-withdrawal data),
         unlock-block: (get withdrawal-unlock-block data),
-        blocks-remaining: (if (> (get withdrawal-unlock-block data) stacks-block-height)
-          (- (get withdrawal-unlock-block data) stacks-block-height)
+        blocks-remaining: (if (> (get withdrawal-unlock-block data) block-height)
+          (- (get withdrawal-unlock-block data) block-height)
           u0
         )
       }
@@ -382,7 +384,7 @@
     (match position
       data (and
         (> (get pending-withdrawal data) u0)
-        (>= stacks-block-height (get withdrawal-unlock-block data))
+        (>= block-height (get withdrawal-unlock-block data))
       )
       false
     )

@@ -9,6 +9,12 @@
  * @see https://www.npmjs.com/package/@faktoryfun/styx-sdk
  */
 
+import {
+  StyxSDK,
+  type DepositRequest as StyxDepositRequest,
+  type PoolStatus as StyxPoolStatus,
+} from "@faktoryfun/styx-sdk";
+
 // ============================================
 // TYPES
 // ============================================
@@ -22,6 +28,7 @@ export interface DepositRequest {
   amount: number; // in sats
   recipientAddress: string; // Stacks address to receive sBTC
   priority: TransactionPriority;
+  btcAddress: string; // BTC address for refunds
 }
 
 export interface DepositResult {
@@ -47,10 +54,11 @@ export type TransactionPriority = "low" | "medium" | "high";
 
 export interface PreparedTransaction {
   depositId: string;
-  psbt: string; // Partially Signed Bitcoin Transaction
+  psbt: string; // Partially Signed Bitcoin Transaction (hex)
   feeRate: number;
   totalFee: number;
   outputAmount: number;
+  depositAddress: string;
 }
 
 // ============================================
@@ -68,39 +76,61 @@ const FEE_RATES: Record<TransactionPriority, number> = {
   high: 30,
 };
 
+// Styx API endpoints
+const STYX_ENDPOINTS = {
+  mainnet: "https://styx-api.faktoryfun.com",
+  testnet: "https://styx-testnet-api.faktoryfun.com",
+};
+
 // ============================================
 // STYX BRIDGE CLIENT
 // ============================================
 
 export class StyxBridge {
   private config: StyxConfig;
+  private sdk: StyxSDK;
   private activeDeposits: Map<string, DepositResult> = new Map();
 
   constructor(config: StyxConfig) {
     this.config = config;
+    this.sdk = new StyxSDK({
+      network: config.network,
+      apiUrl: STYX_ENDPOINTS[config.network],
+    });
   }
 
   /**
-   * Get current pool status
+   * Get current pool status from Styx API
    */
   async getPoolStatus(): Promise<PoolStatus> {
-    // In production: call styxSDK.getPoolStatus()
-    // Mock for development
-    return {
-      availableLiquidity: 50_000_000, // 0.5 BTC
-      totalCapacity: 100_000_000, // 1 BTC
-      utilizationRate: 0.5,
-      minDeposit: MIN_DEPOSIT_SATS,
-      maxDeposit: MAX_DEPOSIT_SATS,
-    };
+    try {
+      const pool = await this.sdk.getPoolStatus();
+      return {
+        availableLiquidity: pool.availableLiquidity,
+        totalCapacity: pool.totalCapacity,
+        utilizationRate: pool.availableLiquidity / pool.totalCapacity,
+        minDeposit: pool.minDeposit || MIN_DEPOSIT_SATS,
+        maxDeposit: pool.maxDeposit || MAX_DEPOSIT_SATS,
+      };
+    } catch (error) {
+      console.error("Failed to get Styx pool status:", error);
+      throw new Error("Unable to connect to Styx bridge. Please try again later.");
+    }
   }
 
   /**
-   * Get current BTC price
+   * Get current BTC price from Styx or fallback
    */
   async getBtcPrice(): Promise<number> {
-    // In production: call styxSDK.getBtcPrice()
-    return 95000; // USD
+    try {
+      const price = await this.sdk.getBtcPrice();
+      return price;
+    } catch (error) {
+      // Fallback to public API
+      const res = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd");
+      const data = await res.json();
+      return data.bitcoin?.usd || 95000;
+    }
   }
 
   /**
@@ -116,7 +146,7 @@ export class StyxBridge {
     if (amountSats > MAX_DEPOSIT_SATS) {
       return {
         valid: false,
-        error: `Maximum deposit is ${MAX_DEPOSIT_SATS} sats (${(MAX_DEPOSIT_SATS / 100_000_000).toFixed(8)} BTC)`,
+        error: `Maximum deposit is ${MAX_DEPOSIT_SATS} sats (${(MAX_DEPOSIT_SATS / 100_000_000).toFixed(8)} BTC). For larger amounts, use the official sBTC bridge.`,
       };
     }
     return { valid: true };
@@ -124,6 +154,7 @@ export class StyxBridge {
 
   /**
    * Prepare a BTC → sBTC deposit transaction
+   * Returns PSBT for wallet signing
    */
   async prepareDeposit(request: DepositRequest): Promise<PreparedTransaction> {
     const validation = this.validateAmount(request.amount);
@@ -134,48 +165,102 @@ export class StyxBridge {
     // Check pool liquidity
     const pool = await this.getPoolStatus();
     if (request.amount > pool.availableLiquidity) {
-      throw new Error(`Insufficient pool liquidity. Available: ${pool.availableLiquidity} sats`);
+      throw new Error(
+        `Insufficient pool liquidity. Available: ${pool.availableLiquidity} sats. ` +
+        `Try a smaller amount or use the official sBTC bridge.`
+      );
     }
 
-    // In production: call styxSDK.prepareTransaction()
-    const feeRate = FEE_RATES[request.priority];
-    const estimatedTxSize = 250; // typical P2WPKH tx size
-    const totalFee = feeRate * estimatedTxSize;
+    try {
+      // Call Styx SDK to prepare the deposit
+      const prepared = await this.sdk.prepareDeposit({
+        amount: request.amount,
+        recipientAddress: request.recipientAddress,
+        refundAddress: request.btcAddress,
+        feeRate: FEE_RATES[request.priority],
+      });
 
-    const depositId = `styx-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-
-    return {
-      depositId,
-      psbt: "mock-psbt-base64", // Would be actual PSBT from SDK
-      feeRate,
-      totalFee,
-      outputAmount: request.amount - totalFee,
-    };
+      return {
+        depositId: prepared.depositId,
+        psbt: prepared.psbt, // Hex-encoded PSBT
+        feeRate: FEE_RATES[request.priority],
+        totalFee: prepared.fee,
+        outputAmount: request.amount - prepared.fee,
+        depositAddress: prepared.depositAddress,
+      };
+    } catch (error: any) {
+      console.error("Failed to prepare Styx deposit:", error);
+      throw new Error(`Failed to prepare deposit: ${error.message || "Unknown error"}`);
+    }
   }
 
   /**
-   * Execute a prepared deposit (after wallet signing)
+   * Execute a prepared deposit after wallet signing
+   * @param depositId - The deposit ID from prepareDeposit
+   * @param signedPsbt - The signed PSBT (hex or base64)
    */
   async executeDeposit(depositId: string, signedPsbt: string): Promise<DepositResult> {
-    // In production: broadcast transaction and update status
-    // await styxSDK.broadcastTransaction(signedPsbt)
+    try {
+      // Broadcast the signed transaction via Styx
+      const broadcast = await this.sdk.broadcastDeposit({
+        depositId,
+        signedPsbt,
+      });
 
-    const result: DepositResult = {
-      depositId,
-      btcTxId: `btc-${Date.now().toString(16)}`, // Mock txid
-      status: "broadcast",
-      amountSats: 100_000, // Would come from actual tx
-      feeSats: 3750,
-      estimatedConfirmationTime: 10, // minutes
+      const result: DepositResult = {
+        depositId,
+        btcTxId: broadcast.txid,
+        status: "broadcast",
+        amountSats: broadcast.amount,
+        feeSats: broadcast.fee,
+        estimatedConfirmationTime: this.estimateConfirmationTime(broadcast.feeRate),
+      };
+
+      this.activeDeposits.set(depositId, result);
+      this.notifyStatusChange(result.status);
+
+      // Start polling for confirmation
+      this.pollConfirmation(depositId);
+
+      return result;
+    } catch (error: any) {
+      console.error("Failed to execute Styx deposit:", error);
+      throw new Error(`Failed to broadcast transaction: ${error.message || "Unknown error"}`);
+    }
+  }
+
+  /**
+   * Poll for deposit confirmation
+   */
+  private async pollConfirmation(depositId: string): Promise<void> {
+    const maxAttempts = 60; // 30 minutes at 30s intervals
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const status = await this.sdk.getDepositStatus(depositId);
+        const deposit = this.activeDeposits.get(depositId);
+
+        if (deposit && status.status !== deposit.status) {
+          deposit.status = status.status as DepositStatus;
+          deposit.btcTxId = status.btcTxId;
+          this.notifyStatusChange(deposit.status);
+        }
+
+        if (status.status === "confirmed" || status.status === "failed") {
+          return; // Stop polling
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 30000); // Poll every 30 seconds
+        }
+      } catch (error) {
+        console.error("Error polling deposit status:", error);
+      }
     };
 
-    this.activeDeposits.set(depositId, result);
-    this.notifyStatusChange(result.status);
-
-    // In production: update Styx pool status
-    // await styxSDK.updateDepositStatus({ id: depositId, data: { btcTxId: result.btcTxId, status: "broadcast" } })
-
-    return result;
+    setTimeout(poll, 10000); // Start polling after 10 seconds
   }
 
   /**
@@ -183,12 +268,20 @@ export class StyxBridge {
    */
   async cancelDeposit(depositId: string): Promise<void> {
     const deposit = this.activeDeposits.get(depositId);
-    if (deposit && deposit.status === "pending") {
+    if (!deposit) {
+      throw new Error("Deposit not found");
+    }
+
+    if (deposit.status !== "pending") {
+      throw new Error(`Cannot cancel deposit with status: ${deposit.status}`);
+    }
+
+    try {
+      await this.sdk.cancelDeposit(depositId);
       deposit.status = "canceled";
       this.notifyStatusChange("canceled");
-
-      // In production: release liquidity
-      // await styxSDK.updateDepositStatus({ id: depositId, data: { status: "canceled" } })
+    } catch (error: any) {
+      throw new Error(`Failed to cancel deposit: ${error.message}`);
     }
   }
 
@@ -196,27 +289,64 @@ export class StyxBridge {
    * Get deposit history for an address
    */
   async getDepositHistory(stacksAddress: string): Promise<DepositResult[]> {
-    // In production: call styxSDK.getDepositHistory(stacksAddress)
-    return Array.from(this.activeDeposits.values());
+    try {
+      const history = await this.sdk.getDepositHistory(stacksAddress);
+      return history.map((d: any) => ({
+        depositId: d.id,
+        btcTxId: d.btcTxId,
+        status: d.status as DepositStatus,
+        amountSats: d.amount,
+        feeSats: d.fee,
+        estimatedConfirmationTime: 0,
+      }));
+    } catch (error) {
+      console.error("Failed to get deposit history:", error);
+      return [];
+    }
   }
 
   /**
    * Check deposit status
    */
   async getDepositStatus(depositId: string): Promise<DepositResult | null> {
-    return this.activeDeposits.get(depositId) || null;
+    // Check local cache first
+    const cached = this.activeDeposits.get(depositId);
+    if (cached) {
+      return cached;
+    }
+
+    // Query Styx API
+    try {
+      const status = await this.sdk.getDepositStatus(depositId);
+      return {
+        depositId,
+        btcTxId: status.btcTxId,
+        status: status.status as DepositStatus,
+        amountSats: status.amount,
+        feeSats: status.fee,
+        estimatedConfirmationTime: 0,
+      };
+    } catch (error) {
+      return null;
+    }
   }
 
   /**
    * Estimate fees for different priorities
    */
   async estimateFees(amountSats: number): Promise<Record<TransactionPriority, { fee: number; time: string }>> {
-    const txSize = 250;
+    const txSize = 250; // Approximate vBytes for a standard deposit tx
     return {
       low: { fee: FEE_RATES.low * txSize, time: "~60 min" },
       medium: { fee: FEE_RATES.medium * txSize, time: "~30 min" },
       high: { fee: FEE_RATES.high * txSize, time: "~10 min" },
     };
+  }
+
+  private estimateConfirmationTime(feeRate: number): number {
+    if (feeRate >= 30) return 10;
+    if (feeRate >= 15) return 30;
+    return 60;
   }
 
   private notifyStatusChange(status: DepositStatus): void {

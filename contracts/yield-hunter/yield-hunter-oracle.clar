@@ -145,8 +145,8 @@
       win-rate-bps: u0,
       best-apy-bps: u0,
       worst-loss-bps: u0,
-      registered-at: stacks-block-height,
-      last-active: stacks-block-height,
+      registered-at: block-height,
+      last-active: block-height,
       alive: true
     })
 
@@ -161,7 +161,7 @@
         name: name,
         owner: owner,
         bitcoin-face-id: bitcoin-face-id,
-        block: stacks-block-height
+        block: block-height
       }
     })
 
@@ -201,12 +201,12 @@
         win-rate-bps: new-win-rate,
         best-apy-bps: new-best-apy,
         worst-loss-bps: new-worst-loss,
-        last-active: stacks-block-height
+        last-active: block-height
       })
     )
 
-    ;; Update leaderboard position
-    (try! (update-leaderboard-position hunter-account (+ (get total-earnings hunter-data) earnings)))
+    ;; Update leaderboard position (ignore result since it always succeeds)
+    (unwrap-panic (update-leaderboard-position hunter-account (+ (get total-earnings hunter-data) earnings)))
 
     ;; Emit event
     (print {
@@ -216,7 +216,7 @@
         earnings: earnings,
         total-earnings: (+ (get total-earnings hunter-data) earnings),
         win-rate-bps: new-win-rate,
-        block: stacks-block-height
+        block: block-height
       }
     })
 
@@ -232,7 +232,7 @@
     (map-set hunter-earnings hunter-account
       (merge hunter-data {
         alive: false,
-        last-active: stacks-block-height
+        last-active: block-height
       })
     )
 
@@ -241,7 +241,7 @@
       payload: {
         hunter: hunter-account,
         total-earnings: (get total-earnings hunter-data),
-        lifespan-blocks: (- stacks-block-height (get registered-at hunter-data))
+        lifespan-blocks: (- block-height (get registered-at hunter-data))
       }
     })
 
@@ -249,22 +249,24 @@
   )
 )
 
-;; Update leaderboard position (internal)
-(define-private (update-leaderboard-position (hunter-account principal) (new-earnings uint))
+;; Update leaderboard position (non-recursive implementation)
+;; Note: This simplified version only does single-step position updates
+;; For full sorting, use an off-chain indexer or batch update
+(define-public (update-leaderboard-position (hunter-account principal) (new-earnings uint))
   (let (
     (current-rank (default-to u0 (map-get? hunter-rank hunter-account)))
   )
-    ;; If not on leaderboard, try to enter
+    ;; If not on leaderboard, try to enter at last position
     (if (is-eq current-rank u0)
-      (try-enter-leaderboard hunter-account new-earnings)
-      ;; If already on leaderboard, check if position changed
-      (try-improve-rank hunter-account current-rank new-earnings)
+      (try-enter-leaderboard-single hunter-account new-earnings)
+      ;; If already on leaderboard, try single position improvement
+      (try-improve-rank-single hunter-account current-rank new-earnings)
     )
   )
 )
 
-;; Try to enter leaderboard (internal)
-(define-private (try-enter-leaderboard (hunter-account principal) (earnings uint))
+;; Try to enter leaderboard at last position (non-recursive)
+(define-private (try-enter-leaderboard-single (hunter-account principal) (earnings uint))
   (let (
     (last-rank LEADERBOARD_SIZE)
     (last-hunter (map-get? leaderboard-by-rank last-rank))
@@ -276,13 +278,13 @@
           data
           (if (> earnings (get total-earnings data))
             (begin
-              ;; Remove old holder
+              ;; Remove old holder from rank tracking
               (map-delete hunter-rank existing-hunter)
               ;; Add new hunter at last position
               (map-set leaderboard-by-rank last-rank hunter-account)
               (map-set hunter-rank hunter-account last-rank)
-              ;; Try to bubble up
-              (try-improve-rank hunter-account last-rank earnings)
+              (var-set leaderboard-updated-at block-height)
+              (ok true)
             )
             (ok true)
           )
@@ -293,14 +295,15 @@
       (begin
         (map-set leaderboard-by-rank last-rank hunter-account)
         (map-set hunter-rank hunter-account last-rank)
-        (try-improve-rank hunter-account last-rank earnings)
+        (var-set leaderboard-updated-at block-height)
+        (ok true)
       )
     )
   )
 )
 
-;; Try to improve rank (simplified bubble-up)
-(define-private (try-improve-rank (hunter-account principal) (current-rank uint) (earnings uint))
+;; Try to improve rank by one position (non-recursive)
+(define-private (try-improve-rank-single (hunter-account principal) (current-rank uint) (earnings uint))
   (if (<= current-rank u1)
     (ok true)  ;; Already at top
     (let (
@@ -314,13 +317,13 @@
             data
             (if (> earnings (get total-earnings data))
               (begin
-                ;; Swap positions
+                ;; Swap positions (single swap, no recursion)
                 (map-set leaderboard-by-rank current-rank existing-higher)
                 (map-set hunter-rank existing-higher current-rank)
                 (map-set leaderboard-by-rank higher-rank hunter-account)
                 (map-set hunter-rank hunter-account higher-rank)
-                ;; Continue bubbling
-                (try-improve-rank hunter-account higher-rank earnings)
+                (var-set leaderboard-updated-at block-height)
+                (ok true)
               )
               (ok true)
             )
@@ -364,7 +367,7 @@
     ;; Cache the result
     (map-set pool-risk-cache pool-contract {
       risk-score: weighted-score,
-      calculated-at: stacks-block-height,
+      calculated-at: block-height,
       liquidity: liquidity,
       volume-24h: volume-24h,
       holder-count: holder-count,
@@ -381,7 +384,7 @@
         volume-score: volume-score,
         concentration-score: concentration-score,
         age-score: age-score,
-        block: stacks-block-height
+        block: block-height
       }
     })
 

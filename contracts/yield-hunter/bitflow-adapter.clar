@@ -122,7 +122,7 @@
           lp-tokens: lp-tokens,
           token-x-deposited: amount,
           token-y-deposited: u0,
-          entry-block: stacks-block-height
+          entry-block: block-height
         }
       )
 
@@ -230,7 +230,7 @@
           lp-tokens: lp-tokens,
           token-x-deposited: amount-x,
           token-y-deposited: amount-y,
-          entry-block: stacks-block-height
+          entry-block: block-height
         }
       )
 

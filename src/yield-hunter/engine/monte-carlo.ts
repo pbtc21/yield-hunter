@@ -372,11 +372,15 @@ export function calculateVaR(returns: number[], confidenceLevel: number = 0.95):
 
 /**
  * Calculate Conditional VaR (Expected Shortfall)
+ * CVaR is the expected loss given that we're in the tail beyond VaR
  */
 export function calculateCVaR(returns: number[], confidenceLevel: number = 0.95): number {
   const sorted = [...returns].sort((a, b) => a - b);
-  const cutoffIndex = Math.floor(sorted.length * (1 - confidenceLevel));
+  const cutoffIndex = Math.max(1, Math.floor(sorted.length * (1 - confidenceLevel)));
   const tailReturns = sorted.slice(0, cutoffIndex);
+  if (tailReturns.length === 0) {
+    return calculateVaR(returns, confidenceLevel); // Fallback to VaR if no tail
+  }
   const avgTailLoss = tailReturns.reduce((a, b) => a + b, 0) / tailReturns.length;
   return -avgTailLoss;
 }

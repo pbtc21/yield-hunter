@@ -1,7 +1,7 @@
 ;; sBTC Token Stub for Testing
 ;; Real contract: STV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RJ5XDY2.sbtc-token
 
-(impl-trait 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.sip-010-trait)
+(impl-trait .sip-010-trait.sip-010-trait)
 
 (define-fungible-token sbtc)
 

@@ -4,7 +4,6 @@ description = "Autonomous yield-hunting AI agent for AIBTC"
 authors = ["AIBTC <dev@aibtc.dev>"]
 telemetry = false
 cache_dir = "./.cache"
-requirements = []
 
 # Core contracts
 [contracts.yield-hunter]
@@ -42,15 +41,12 @@ path = "contracts/yield-hunter/arkadiko-adapter.clar"
 # External contract references (deployed on mainnet/testnet)
 [contracts.sbtc-token]
 path = "contracts/external/sbtc-token.clar"
-clarity_version = 2
 
 [contracts.xyk-pool-trait]
 path = "contracts/external/xyk-pool-trait.clar"
-clarity_version = 2
 
-[repl]
-costs_version = 2
-parser_version = 2
+[contracts.sip-010-trait]
+path = "contracts/external/sip-010-trait.clar"
 
 [repl.analysis]
 passes = ["check_checker"]

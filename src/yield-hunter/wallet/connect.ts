@@ -212,6 +212,15 @@ export class LeatherWallet {
 // XVERSE WALLET
 // ============================================
 
+import {
+  getAddress,
+  signMessage as xverseSignMessage,
+  signTransaction as xverseSignTransaction,
+  AddressPurpose,
+  BitcoinNetworkType,
+  type GetAddressResponse,
+} from "sats-connect";
+
 export class XverseWallet {
   private config: WalletConfig;
   private connected: ConnectedWallet | null = null;
@@ -232,98 +241,147 @@ export class XverseWallet {
   }
 
   /**
-   * Connect to Xverse wallet
-   * Uses sats-connect library in production
+   * Get network type for sats-connect
+   */
+  private getNetworkType(): BitcoinNetworkType {
+    return this.config.network === "mainnet"
+      ? BitcoinNetworkType.Mainnet
+      : BitcoinNetworkType.Testnet;
+  }
+
+  /**
+   * Connect to Xverse wallet using sats-connect
    */
   async connect(): Promise<ConnectedWallet> {
     if (!this.isAvailable()) {
       throw new Error("Xverse wallet not installed. Get it at xverse.app");
     }
 
-    // In production, use sats-connect:
-    // import { getAddress, AddressPurpose } from "sats-connect";
-    //
-    // const response = await getAddress({
-    //   payload: {
-    //     purposes: [AddressPurpose.Payment, AddressPurpose.Stacks],
-    //     message: `Connect to ${this.config.appName}`,
-    //     network: { type: this.config.network === "mainnet" ? "Mainnet" : "Testnet" }
-    //   },
-    //   onFinish: (response) => resolve(response),
-    //   onCancel: () => reject(new Error("User cancelled"))
-    // });
+    return new Promise((resolve, reject) => {
+      getAddress({
+        payload: {
+          purposes: [AddressPurpose.Payment, AddressPurpose.Stacks],
+          message: `Connect to ${this.config.appName}`,
+          network: {
+            type: this.getNetworkType(),
+          },
+        },
+        onFinish: (response: GetAddressResponse) => {
+          const btcAddr = response.addresses.find(
+            (a) => a.purpose === AddressPurpose.Payment
+          );
+          const stacksAddr = response.addresses.find(
+            (a) => a.purpose === AddressPurpose.Stacks
+          );
 
-    // Mock for development
-    this.connected = {
-      type: "xverse",
-      stacksAddress: "SP123...",
-      btcAddress: "bc1q...",
-      publicKey: "02abc...",
-    };
+          if (!btcAddr || !stacksAddr) {
+            reject(new Error("Could not get addresses from Xverse"));
+            return;
+          }
 
-    return this.connected;
+          this.connected = {
+            type: "xverse",
+            stacksAddress: stacksAddr.address,
+            btcAddress: btcAddr.address,
+            publicKey: btcAddr.publicKey,
+          };
+
+          resolve(this.connected);
+        },
+        onCancel: () => {
+          reject(new Error("User cancelled wallet connection"));
+        },
+      });
+    });
   }
 
   /**
-   * Sign a message
+   * Sign a message using sats-connect
    */
   async signMessage(request: SignatureRequest): Promise<SignedMessage> {
     if (!this.connected) {
       throw new Error("Wallet not connected");
     }
 
-    // In production, use sats-connect:
-    // import { signMessage } from "sats-connect";
-    //
-    // const response = await signMessage({
-    //   payload: {
-    //     message: request.message,
-    //     address: this.connected.btcAddress,
-    //     network: { type: this.config.network === "mainnet" ? "Mainnet" : "Testnet" }
-    //   }
-    // });
-
-    return {
-      signature: "mock-signature",
-      publicKey: this.connected.publicKey,
-    };
+    return new Promise((resolve, reject) => {
+      xverseSignMessage({
+        payload: {
+          message: request.message,
+          address: this.connected!.btcAddress,
+          network: {
+            type: this.getNetworkType(),
+          },
+        },
+        onFinish: (response) => {
+          resolve({
+            signature: response,
+            publicKey: this.connected!.publicKey,
+          });
+        },
+        onCancel: () => {
+          reject(new Error("User cancelled message signing"));
+        },
+      });
+    });
   }
 
   /**
-   * Sign a Bitcoin transaction (PSBT)
+   * Sign a Bitcoin transaction (PSBT) using sats-connect
    */
   async signBitcoinTransaction(request: TransactionSignRequest): Promise<SignedTransaction> {
     if (!this.connected) {
       throw new Error("Wallet not connected");
     }
 
-    // In production, use sats-connect:
-    // import { signTransaction } from "sats-connect";
-    //
-    // const response = await signTransaction({
-    //   payload: {
-    //     psbtBase64: request.psbt,
-    //     broadcast: request.broadcast ?? true,
-    //     network: { type: this.config.network === "mainnet" ? "Mainnet" : "Testnet" }
-    //   }
-    // });
-
-    return {
-      txid: `xverse-${Date.now().toString(16)}`,
-      broadcast: request.broadcast ?? true,
-    };
+    return new Promise((resolve, reject) => {
+      xverseSignTransaction({
+        payload: {
+          psbtBase64: request.psbt,
+          broadcast: request.broadcast ?? true,
+          network: {
+            type: this.getNetworkType(),
+          },
+          inputsToSign: [], // Will sign all inputs belonging to wallet
+        },
+        onFinish: (response) => {
+          resolve({
+            txid: response.txId || "",
+            psbt: response.psbtBase64,
+            broadcast: request.broadcast ?? true,
+          });
+        },
+        onCancel: () => {
+          reject(new Error("User cancelled transaction signing"));
+        },
+      });
+    });
   }
 
   /**
    * Sign a Stacks transaction
+   * Note: Xverse uses a different method for Stacks transactions
    */
   async signStacksTransaction(txHex: string): Promise<string> {
     if (!this.connected) {
       throw new Error("Wallet not connected");
     }
 
-    // In production, use stacks-connect for Xverse Stacks signing
-    return txHex;
+    // For Stacks transactions, we need to use the Stacks-specific signing
+    // This requires @stacks/connect integration
+    const provider = (window as any).XverseProviders?.StacksProvider;
+    if (!provider) {
+      throw new Error("Xverse Stacks provider not available");
+    }
+
+    try {
+      const response = await provider.request("stx_signTransaction", {
+        txHex,
+        network: this.config.network,
+      });
+      return response.txHex;
+    } catch (error: any) {
+      throw new Error(`Failed to sign Stacks transaction: ${error.message}`);
+    }
   }
 
   /**

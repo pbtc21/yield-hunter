@@ -12,6 +12,9 @@ import {
   Cl,
   fetchCallReadOnlyFunction,
   cvToValue,
+  makeStandardFungiblePostCondition,
+  FungibleConditionCode,
+  createAssetInfo,
 } from "@stacks/transactions";
 import { StacksNetwork, StacksMainnet, StacksTestnet } from "@stacks/network";
 import type {
@@ -39,18 +42,22 @@ interface ContractConfig {
   senderAddress?: string;
 }
 
+// Contract addresses - MUST be updated before mainnet deployment
+// These are placeholder addresses for development
 const DEFAULT_CONTRACTS = {
   mainnet: {
-    yieldHunter: "SP...yield-hunter",
-    adapter: "SP...yield-hunter-adapter",
-    oracle: "SP...yield-hunter-oracle",
-    sbtc: "STV9K21TBFAK4KNRJXF5DFP8N7W46G4V9RJ5XDY2.sbtc-token",
+    // WARNING: These addresses must be set after mainnet deployment
+    yieldHunter: "", // Set after deployment
+    adapter: "", // Set after deployment
+    oracle: "", // Set after deployment
+    sbtc: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token", // Official sBTC mainnet
   },
   testnet: {
-    yieldHunter: "ST...yield-hunter",
-    adapter: "ST...yield-hunter-adapter",
-    oracle: "ST...yield-hunter-oracle",
-    sbtc: "ST...sbtc-token",
+    // Testnet contract addresses - deploy these first
+    yieldHunter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter",
+    adapter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-adapter",
+    oracle: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-oracle",
+    sbtc: "ST1F7QA2MDF17S807EPA36TSS8AMEFY4KA9TVGWXT.sbtc-token", // Testnet sBTC
   },
   devnet: {
     yieldHunter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter",
@@ -314,13 +321,31 @@ export class ContractClient {
 
   /**
    * Hunt yield - invest in a pool
+   * SECURITY: Uses PostConditionMode.Deny with explicit post conditions
+   * to ensure only the specified amount of sBTC can be transferred
    */
   async huntYield(params: HuntYieldParams): Promise<TransactionResult> {
     if (!this.senderKey) {
       return { success: false, error: "Sender key not configured" };
     }
 
+    if (!this.contracts.yieldHunter) {
+      return { success: false, error: "Yield hunter contract address not configured" };
+    }
+
     const [contractAddr, contractName] = this.contracts.yieldHunter.split(".");
+    const [sbtcAddr, sbtcName] = this.contracts.sbtc.split(".");
+
+    // Create post condition: hunter can only send exactly the specified amount of sBTC
+    // This prevents the contract from transferring more than expected
+    const postConditions = [
+      makeStandardFungiblePostCondition(
+        params.hunterAccount,
+        FungibleConditionCode.Equal,
+        params.amount,
+        createAssetInfo(sbtcAddr, sbtcName, "sbtc")
+      ),
+    ];
 
     try {
       const tx = await makeContractCall({
@@ -337,7 +362,8 @@ export class ContractClient {
         network: this.network,
         senderKey: this.senderKey,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny, // CRITICAL: Deny unexpected transfers
+        postConditions,
       });
 
       const result = await broadcastTransaction({ transaction: tx, network: this.network });
@@ -392,13 +418,32 @@ export class ContractClient {
 
   /**
    * Exit a position
+   * SECURITY: Uses PostConditionMode.Deny - the contract will ensure
+   * minimum receive amount, and post condition ensures hunter receives
+   * at least the minReceive amount
    */
   async exitPosition(params: ExitPositionParams): Promise<TransactionResult> {
     if (!this.senderKey) {
       return { success: false, error: "Sender key not configured" };
     }
 
+    if (!this.contracts.yieldHunter) {
+      return { success: false, error: "Yield hunter contract address not configured" };
+    }
+
     const [contractAddr, contractName] = this.contracts.yieldHunter.split(".");
+    const [sbtcAddr, sbtcName] = this.contracts.sbtc.split(".");
+
+    // Post condition: hunter must receive at least minReceive amount of sBTC
+    // This protects against slippage attacks
+    const postConditions = [
+      makeStandardFungiblePostCondition(
+        params.hunterAccount,
+        FungibleConditionCode.GreaterEqual,
+        params.minReceive,
+        createAssetInfo(sbtcAddr, sbtcName, "sbtc")
+      ),
+    ];
 
     try {
       const tx = await makeContractCall({
@@ -414,7 +459,8 @@ export class ContractClient {
         network: this.network,
         senderKey: this.senderKey,
         anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Allow,
+        postConditionMode: PostConditionMode.Deny, // CRITICAL: Deny unexpected transfers
+        postConditions,
       });
 
       const result = await broadcastTransaction({ transaction: tx, network: this.network });

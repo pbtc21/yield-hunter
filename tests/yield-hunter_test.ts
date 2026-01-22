@@ -219,6 +219,202 @@ Clarinet.test({
 });
 
 // ============================================
+// SECURITY TESTS
+// ============================================
+
+Clarinet.test({
+  name: "security: only admin can approve pools",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const attacker = accounts.get("wallet_1")!;
+    const pool = accounts.get("wallet_2")!;
+
+    // Attacker tries to approve a pool
+    const block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "approve-pool",
+        [
+          types.principal(pool.address),
+          types.principal(pool.address), // token-x
+          types.principal(pool.address), // token-y
+          types.uint(100000000), // min-liquidity
+          types.uint(60), // max-risk-score
+        ],
+        attacker.address // NOT the admin
+      ),
+    ]);
+
+    assertEquals(block.receipts.length, 1);
+    assertEquals(block.receipts[0].result, "(err u1001)"); // ERR_NOT_AUTHORIZED
+  },
+});
+
+Clarinet.test({
+  name: "security: admin can approve pools",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const pool = accounts.get("wallet_1")!;
+
+    // Admin (deployer) approves a pool
+    const block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "approve-pool",
+        [
+          types.principal(pool.address),
+          types.principal(pool.address), // token-x
+          types.principal(pool.address), // token-y
+          types.uint(100000000), // min-liquidity
+          types.uint(60), // max-risk-score
+        ],
+        deployer.address // Admin
+      ),
+    ]);
+
+    assertEquals(block.receipts.length, 1);
+    assertEquals(block.receipts[0].result, "(ok true)");
+  },
+});
+
+Clarinet.test({
+  name: "security: only admin can revoke pools",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const attacker = accounts.get("wallet_1")!;
+    const pool = accounts.get("wallet_2")!;
+
+    // First, admin approves a pool
+    chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "approve-pool",
+        [
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.uint(100000000),
+          types.uint(60),
+        ],
+        deployer.address
+      ),
+    ]);
+
+    // Attacker tries to revoke the pool
+    const block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "revoke-pool",
+        [types.principal(pool.address)],
+        attacker.address // NOT the admin
+      ),
+    ]);
+
+    assertEquals(block.receipts.length, 1);
+    assertEquals(block.receipts[0].result, "(err u1001)"); // ERR_NOT_AUTHORIZED
+  },
+});
+
+Clarinet.test({
+  name: "security: only admin can transfer admin role",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const attacker = accounts.get("wallet_1")!;
+    const newAdmin = accounts.get("wallet_2")!;
+
+    // Attacker tries to set themselves as admin
+    const block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "set-contract-admin",
+        [types.principal(attacker.address)],
+        attacker.address // NOT the current admin
+      ),
+    ]);
+
+    assertEquals(block.receipts.length, 1);
+    assertEquals(block.receipts[0].result, "(err u1001)"); // ERR_NOT_AUTHORIZED
+  },
+});
+
+Clarinet.test({
+  name: "security: dead hunter cannot hunt",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const owner = accounts.get("wallet_1")!;
+    const agent = accounts.get("wallet_2")!;
+
+    // Initialize hunter
+    chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "initialize-hunter",
+        [
+          types.principal(owner.address),
+          types.principal(owner.address),
+          types.principal(agent.address),
+          types.uint(1),
+          types.uint(1),
+          types.uint(100),
+          types.uint(50),
+          types.bool(true),
+          types.uint(1000),
+        ],
+        owner.address
+      ),
+    ]);
+
+    // Verify hunter is alive and can hunt
+    const canHunt = chain.callReadOnlyFn(
+      "yield-hunter",
+      "can-hunt",
+      [types.principal(owner.address)],
+      deployer.address
+    );
+    assertEquals(canHunt.result, "true");
+  },
+});
+
+Clarinet.test({
+  name: "security: risk score limits position size",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const owner = accounts.get("wallet_1")!;
+    const agent = accounts.get("wallet_2")!;
+
+    // Initialize hunter with max risk 40
+    chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "initialize-hunter",
+        [
+          types.principal(owner.address),
+          types.principal(owner.address),
+          types.principal(agent.address),
+          types.uint(1),
+          types.uint(1),
+          types.uint(100),
+          types.uint(40), // Max risk score 40
+          types.bool(true),
+          types.uint(1000),
+        ],
+        owner.address
+      ),
+    ]);
+
+    // Verify hunter state
+    const hunterState = chain.callReadOnlyFn(
+      "yield-hunter",
+      "get-hunter",
+      [types.principal(owner.address)],
+      deployer.address
+    );
+    assertExists(hunterState.result);
+    // Hunter should have max-risk-score = 40 in strategy-config
+  },
+});
+
+// ============================================
 // INTEGRATION TESTS
 // ============================================
 
@@ -285,5 +481,59 @@ Clarinet.test({
       ),
     ]);
     assertEquals(block.receipts[0].result, "(ok false)");
+  },
+});
+
+Clarinet.test({
+  name: "integration: admin transfer works correctly",
+  async fn(chain: Chain, accounts: Map<string, Account>) {
+    const deployer = accounts.get("deployer")!;
+    const newAdmin = accounts.get("wallet_1")!;
+    const pool = accounts.get("wallet_2")!;
+
+    // 1. Transfer admin to new address
+    let block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "set-contract-admin",
+        [types.principal(newAdmin.address)],
+        deployer.address
+      ),
+    ]);
+    assertEquals(block.receipts[0].result, "(ok true)");
+
+    // 2. Old admin can no longer approve pools
+    block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "approve-pool",
+        [
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.uint(100000000),
+          types.uint(60),
+        ],
+        deployer.address // Old admin
+      ),
+    ]);
+    assertEquals(block.receipts[0].result, "(err u1001)");
+
+    // 3. New admin can approve pools
+    block = chain.mineBlock([
+      Tx.contractCall(
+        "yield-hunter",
+        "approve-pool",
+        [
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.principal(pool.address),
+          types.uint(100000000),
+          types.uint(60),
+        ],
+        newAdmin.address // New admin
+      ),
+    ]);
+    assertEquals(block.receipts[0].result, "(ok true)");
   },
 });

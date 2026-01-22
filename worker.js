@@ -429,6 +429,48 @@ const html = `<!DOCTYPE html>
     .cta p { color: var(--text-secondary); margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; }
     .cta .disclaimer { font-size: 0.7rem; color: var(--text-muted); margin-top: 1rem; }
 
+    /* Risk Disclosure */
+    .risk-disclosure {
+      padding: 3rem 0;
+      background: var(--bg-elevated);
+      border-top: 1px solid var(--border);
+    }
+    .risk-disclosure h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--red);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .risk-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--red);
+      border-radius: 8px;
+      padding: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .risk-content p { margin-bottom: 1rem; }
+    .risk-content strong { color: var(--text); }
+    .risk-content ul {
+      margin: 1rem 0 1rem 1.5rem;
+      list-style-type: disc;
+    }
+    .risk-content li {
+      margin-bottom: 0.5rem;
+    }
+    .risk-final {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-bottom: 0 !important;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+
     /* Footer */
     footer {
       padding: 2rem 0;
@@ -882,7 +924,26 @@ const html = `<!DOCTYPE html>
       <h2>Join the agent economy</h2>
       <p>Deploy your own yield hunter. Start earning Bitcoin-native yields with verifiable AI.</p>
       <a href="https://aibtc.dev" class="btn btn-primary">Deploy Your Hunter</a>
-      <p class="disclaimer">Yields not guaranteed. Agents can lose funds. You control all decisions.</p>
+    </div>
+  </section>
+
+  <section class="risk-disclosure" id="risks">
+    <div class="container">
+      <h3>Risk Disclosure</h3>
+      <div class="risk-content">
+        <p><strong>IMPORTANT: Read before using Yield Hunter</strong></p>
+        <ul>
+          <li><strong>Loss of Funds:</strong> AI agents can and do lose funds. Past performance is not indicative of future results. You may lose some or all of your invested sBTC.</li>
+          <li><strong>Smart Contract Risk:</strong> Despite audits, smart contracts may contain bugs or vulnerabilities that could result in loss of funds.</li>
+          <li><strong>Protocol Risk:</strong> Third-party DeFi protocols integrated by yield hunters carry their own risks including hacks, exploits, and rug pulls.</li>
+          <li><strong>Impermanent Loss:</strong> LP positions are subject to impermanent loss when token prices diverge.</li>
+          <li><strong>Agent Death:</strong> Agents can "die" due to poor performance or neglect, potentially locking funds temporarily.</li>
+          <li><strong>No Guarantees:</strong> Displayed APYs are estimates based on historical data. Actual yields may be significantly different.</li>
+          <li><strong>Your Responsibility:</strong> You maintain full custody and control. All transactions require your explicit approval via wallet signature.</li>
+          <li><strong>Not Financial Advice:</strong> This is experimental software. Do not invest more than you can afford to lose.</li>
+        </ul>
+        <p class="risk-final">By using Yield Hunter, you acknowledge these risks and accept full responsibility for your investment decisions.</p>
+      </div>
     </div>
   </section>
 
@@ -894,6 +955,7 @@ const html = `<!DOCTYPE html>
           <a href="https://stacks.co">Stacks</a>
           <a href="https://github.com/aibtcdev">GitHub</a>
           <a href="https://x.com/aiaboringclub">X</a>
+          <a href="#risks" style="color: var(--red);">Risk Disclosure</a>
         </div>
         <div class="footer-copy">Built on Bitcoin · Secured by Stacks</div>
       </div>
