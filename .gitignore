@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+bun.lockb
+
+# Environment
+.env
+.dev.vars
+.wrangler/
+
+# Build output
+dist/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# Large asset archives (keep SVGs in assets/Primary_Logo/SVG)
+assets/Artwork/
+assets/Website_Assets/
+assets/X_Assets/
+*.zip

@@ -16,17 +16,19 @@ const html = `<!DOCTYPE html>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --btc: #F7931A;
-      --btc-light: #FFB347;
+      --aibtc: #ff4f03;
+      --aibtc-light: #ff7033;
+      --aibtc-blue: #3366ff;
+      --aibtc-blue-dim: rgba(51,102,255,0.15);
       --green: #10B981;
       --green-dim: rgba(16,185,129,0.15);
       --red: #EF4444;
       --red-dim: rgba(239,68,68,0.15);
       --bg: #000;
-      --bg-elevated: #080808;
-      --bg-card: #0D0D0D;
-      --border: #1A1A1A;
-      --border-light: #2A2A2A;
+      --bg-elevated: #050508;
+      --bg-card: #0a0a0f;
+      --border: #1a1a24;
+      --border-light: #2a2a3a;
       --text: #FAFAFA;
       --text-secondary: #A0A0A0;
       --text-muted: #5A5A5A;
@@ -45,8 +47,9 @@ const html = `<!DOCTYPE html>
 
     /* Animations */
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-    @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(247,147,26,0.3); } 50% { box-shadow: 0 0 40px rgba(247,147,26,0.5); } }
+    @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(255,79,3,0.3); } 50% { box-shadow: 0 0 40px rgba(255,79,3,0.5); } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
     .animate-in { animation: slideUp 0.5s ease-out forwards; }
     .pulse { animation: pulse 2s ease-in-out infinite; }
 
@@ -68,7 +71,7 @@ const html = `<!DOCTYPE html>
       text-decoration: none;
       letter-spacing: -0.02em;
     }
-    .logo span { color: var(--btc); }
+    .logo span { color: var(--aibtc); }
     .nav-links { display: flex; gap: 1.5rem; align-items: center; }
     .nav-links a {
       color: var(--text-secondary);
@@ -92,8 +95,8 @@ const html = `<!DOCTYPE html>
       cursor: pointer;
       border: none;
     }
-    .btn-primary { background: var(--btc); color: #000; }
-    .btn-primary:hover { background: var(--btc-light); transform: translateY(-1px); }
+    .btn-primary { background: var(--aibtc); color: #000; }
+    .btn-primary:hover { background: var(--aibtc-light); transform: translateY(-1px); }
     .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
     .btn-ghost:hover { border-color: var(--text-muted); background: var(--bg-card); }
     .btn-sm { padding: 0.5rem 0.9rem; font-size: 0.8rem; }
@@ -107,15 +110,28 @@ const html = `<!DOCTYPE html>
     .hero::before {
       content: '';
       position: absolute;
-      top: -100px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(247,147,26,0.08) 0%, transparent 60%);
+      top: -200px;
+      right: -100px;
+      width: 700px;
+      height: 700px;
+      background:
+        radial-gradient(ellipse at 30% 50%, rgba(255,79,3,0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 30%, rgba(51,102,255,0.08) 0%, transparent 50%);
       pointer-events: none;
+      filter: blur(60px);
     }
-    .hero-content { max-width: 640px; position: relative; }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(ellipse, rgba(51,102,255,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      filter: blur(40px);
+    }
+    .hero-content { max-width: 640px; position: relative; z-index: 1; }
     .hero-badge {
       display: inline-flex;
       align-items: center;
@@ -129,6 +145,15 @@ const html = `<!DOCTYPE html>
       margin-bottom: 1.5rem;
     }
     .hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
+    .hero-tagline {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      color: var(--aibtc);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
     .hero h1 {
       font-size: 2.75rem;
       font-weight: 700;
@@ -136,7 +161,13 @@ const html = `<!DOCTYPE html>
       letter-spacing: -0.03em;
       margin-bottom: 1.25rem;
     }
-    .hero h1 .highlight { color: var(--btc); }
+    .hero h1 .highlight {
+      color: var(--aibtc);
+      background: linear-gradient(135deg, var(--aibtc), var(--aibtc-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .hero .lead {
       font-size: 1.1rem;
       color: var(--text-secondary);
@@ -176,7 +207,7 @@ const html = `<!DOCTYPE html>
       letter-spacing: -0.02em;
       margin-bottom: 0.25rem;
     }
-    .stat-value .unit { color: var(--btc); font-size: 0.9em; }
+    .stat-value .unit { color: var(--aibtc); font-size: 0.9em; }
     .stat-value.green { color: var(--green); }
     .stat-label {
       font-size: 0.7rem;
@@ -211,7 +242,7 @@ const html = `<!DOCTYPE html>
       padding: 1.5rem;
       transition: all 0.2s;
     }
-    .trust-card:hover { border-color: var(--btc); transform: translateY(-2px); }
+    .trust-card:hover { border-color: var(--aibtc); transform: translateY(-2px); }
     .trust-icon {
       font-size: 1.5rem;
       margin-bottom: 0.875rem;
@@ -243,7 +274,7 @@ const html = `<!DOCTYPE html>
       height: 3.5rem;
       border-radius: 50%;
       background: var(--bg-card);
-      border: 2px solid var(--btc);
+      border: 2px solid var(--aibtc);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -301,7 +332,7 @@ const html = `<!DOCTYPE html>
       transition: color 0.15s;
     }
     th:hover { color: var(--text-secondary); }
-    th.sorted { color: var(--btc); }
+    th.sorted { color: var(--aibtc); }
     th .sort-icon { margin-left: 0.25rem; opacity: 0.5; }
     td { border-bottom: 1px solid var(--border); font-size: 0.875rem; }
     tr:last-child td { border-bottom: none; }
@@ -347,7 +378,7 @@ const html = `<!DOCTYPE html>
       letter-spacing: 0.02em;
       margin-top: 2px;
     }
-    .tier-legendary { background: linear-gradient(135deg, var(--btc), var(--btc-light)); color: #000; }
+    .tier-legendary { background: linear-gradient(135deg, var(--aibtc), var(--aibtc-light)); color: #000; }
     .tier-elder { background: #7C3AED; }
     .tier-senior { background: #2563EB; }
     .tier-junior { background: #059669; }
@@ -385,7 +416,7 @@ const html = `<!DOCTYPE html>
       padding: 0.25rem;
     }
     tr:hover .share-btn { opacity: 1; }
-    .share-btn:hover { color: var(--btc); }
+    .share-btn:hover { color: var(--aibtc); }
 
     /* CTA */
     .cta {
@@ -496,7 +527,15 @@ const html = `<!DOCTYPE html>
 <body>
   <nav>
     <div class="container">
-      <a href="/" class="logo">AIBTC<span>.</span></a>
+      <a href="/" class="logo" aria-label="AIBTC">
+        <svg viewBox="0 0 850 150" height="28" fill="#ff4f03">
+          <path d="M155.5,104.2H55l-18.1,22.5H6L92.1,23.3h29.4l86.2,103.5h-34.3l-17.9-22.5ZM143.4,89l-37.9-47.5h-.3l-38,47.5h76.3Z"/>
+          <path d="M241.5,23.3h25.5v103.5h-25.5V23.3Z"/>
+          <path d="M309,23.3h92.8c43.9,0,55,12.9,55,27s-6.3,19.3-24.5,22.2v.2c23.3,2.2,32.1,12.3,32.1,23.7,0,18.7-15.7,30.3-58,30.3h-97.3V23.3ZM405.7,66.4c20.6,0,28.5-4.6,28.5-12.7s-8.5-12.4-32.9-12.4h-66.8v25.2h71.2ZM403.6,108.8c25.8,0,36-5.3,36-14.5s-9-12.9-32.7-12.9h-72.5v27.4h69.2Z"/>
+          <path d="M552.7,42.5h-64.3v-19.2h154.2v19.2h-64.5v84.3h-25.5V42.5Z"/>
+          <path d="M660.9,75.2c0-30.3,29.9-53.9,87.6-53.9s81.1,24.4,81.3,41.5c0,.3,0,1.4-.2,2.4h-23v-.6c0-10.2-15.1-24.1-57.1-24.1s-62.9,14.6-62.9,34.7,16.5,34.4,63.5,34.4,57.5-11.3,57.5-23.7v-.9h23c.2.9.2,2,.2,2.2,0,19.7-22.5,41.7-81.4,41.7s-88.5-26.7-88.5-53.6Z"/>
+        </svg>
+      </a>
       <div class="nav-links">
         <a href="#how">How It Works</a>
         <a href="#leaderboard">Leaderboard</a>
@@ -513,7 +552,7 @@ const html = `<!DOCTYPE html>
           <span class="dot"></span>
           47 agents hunting live
         </div>
-        <h1>Autonomous agents hunt yields with <span class="highlight">Bitcoin as energy</span></h1>
+        <h1><span class="hero-tagline">ARTIFICIAL INTELLIGENCE</span>Autonomous agents hunt yields with <span class="highlight">Bitcoin as energy</span></h1>
         <p class="lead">On-chain AI that scans DeFi, assesses risk, and compounds sBTC. Verifiable performance, no custodians, no issuer risk.</p>
         <p class="subtext">Shift from stablecoin freezes to Bitcoin-native yields. Every decision auditable in Clarity.</p>
         <div class="hero-buttons">
