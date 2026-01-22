@@ -4,968 +4,851 @@ const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIBTC Yield Hunter | AI Agents Earning Real Bitcoin on Stacks</title>
-  <meta name="description" content="Deploy autonomous AI yield hunters on Bitcoin L2. Verifiable on-chain performance, sBTC-powered, no issuer risk. Join the agent economy.">
-  <meta name="keywords" content="Bitcoin AI agents, sBTC yield farming, Stacks DeFi, autonomous yield, Bitcoin L2, Clarity smart contracts">
-  <meta property="og:title" content="AIBTC Yield Hunter | AI Agents Earning on Bitcoin">
-  <meta property="og:description" content="Autonomous agents hunt yields with Bitcoin as energy money. Uncensorable, verifiable, real sats.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Yield Hunter | Autonomous Bitcoin Yield Agents</title>
+  <meta name="description" content="Autonomous AI agents that hunt DeFi yields on Bitcoin L2. Built on Stacks, powered by sBTC.">
+  <meta property="og:title" content="Yield Hunter | AIBTC">
+  <meta property="og:description" content="Autonomous AI agents hunting yields on Bitcoin.">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <link rel="preconnect" href="https://api.fontshare.com">
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --aibtc: #ff4f03;
-      --aibtc-light: #ff7033;
-      --aibtc-blue: #3366ff;
-      --aibtc-blue-dim: rgba(51,102,255,0.15);
-      --green: #10B981;
-      --green-dim: rgba(16,185,129,0.15);
-      --red: #EF4444;
-      --red-dim: rgba(239,68,68,0.15);
-      --bg: #000;
-      --bg-elevated: #050508;
-      --bg-card: #0a0a0f;
-      --border: #1a1a24;
-      --border-light: #2a2a3a;
-      --text: #FAFAFA;
-      --text-secondary: #A0A0A0;
-      --text-muted: #5A5A5A;
+      --orange: #ff4f03;
+      --orange-hover: #e54600;
+      --green: #22c55e;
+      --red: #ef4444;
+      --bg: #09090b;
+      --bg-subtle: #0f0f12;
+      --bg-card: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-dim: #52525b;
+      --radius: 8px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     html { scroll-behavior: smooth; }
+
     body {
-      font-family: 'Satoshi', -apple-system, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.55;
+      line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 1.5rem; }
-    .mono { font-family: 'SF Mono', 'Fira Code', monospace; }
 
-    /* Animations */
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-    @keyframes glow { 0%, 100% { box-shadow: 0 0 20px rgba(255,79,3,0.3); } 50% { box-shadow: 0 0 40px rgba(255,79,3,0.5); } }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    .animate-in { animation: slideUp 0.5s ease-out forwards; }
-    .pulse { animation: pulse 2s ease-in-out infinite; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
 
-    /* Nav */
+    .container {
+      width: 100%;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* NAV */
     nav {
-      padding: 1rem 0;
-      position: sticky;
+      position: fixed;
       top: 0;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
+      left: 0;
+      right: 0;
       z-index: 100;
+      background: rgba(9, 9, 11, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
     }
-    nav .container { display: flex; justify-content: space-between; align-items: center; }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
     .logo {
-      font-size: 1.1rem;
       font-weight: 700;
+      font-size: 18px;
       color: var(--text);
       text-decoration: none;
-      letter-spacing: -0.02em;
-    }
-    .logo span { color: var(--aibtc); }
-    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-    .nav-links a {
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 500;
-      transition: color 0.15s;
-    }
-    .nav-links a:hover { color: var(--text); }
-    .btn {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.25rem;
+      gap: 8px;
+    }
+
+    .logo-mark {
+      width: 28px;
+      height: 28px;
+      background: var(--orange);
       border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      text-decoration: none;
-      transition: all 0.15s;
-      font-family: inherit;
-      cursor: pointer;
-      border: none;
-    }
-    .btn-primary { background: var(--aibtc); color: #000; }
-    .btn-primary:hover { background: var(--aibtc-light); transform: translateY(-1px); }
-    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
-    .btn-ghost:hover { border-color: var(--text-muted); background: var(--bg-card); }
-    .btn-sm { padding: 0.5rem 0.9rem; font-size: 0.8rem; }
-
-    /* Hero */
-    .hero {
-      padding: 5rem 0 4rem;
-      position: relative;
-      overflow: hidden;
-    }
-    .hero::before {
-      content: '';
-      position: absolute;
-      top: -200px;
-      right: -100px;
-      width: 700px;
-      height: 700px;
-      background:
-        radial-gradient(ellipse at 30% 50%, rgba(255,79,3,0.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 70% 30%, rgba(51,102,255,0.08) 0%, transparent 50%);
-      pointer-events: none;
-      filter: blur(60px);
-    }
-    .hero::after {
-      content: '';
-      position: absolute;
-      bottom: -100px;
-      left: -100px;
-      width: 500px;
-      height: 500px;
-      background: radial-gradient(ellipse, rgba(51,102,255,0.06) 0%, transparent 60%);
-      pointer-events: none;
-      filter: blur(40px);
-    }
-    .hero-content { max-width: 640px; position: relative; z-index: 1; }
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 0.35rem 0.75rem;
-      border-radius: 100px;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      margin-bottom: 1.5rem;
-    }
-    .hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
-    .hero-tagline {
-      display: block;
-      font-size: 0.65rem;
-      font-weight: 500;
-      letter-spacing: 0.25em;
-      color: var(--aibtc);
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-    }
-    .hero h1 {
-      font-size: 2.75rem;
-      font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      margin-bottom: 1.25rem;
-    }
-    .hero h1 .highlight {
-      color: var(--aibtc);
-      background: linear-gradient(135deg, var(--aibtc), var(--aibtc-blue));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero .lead {
-      font-size: 1.1rem;
-      color: var(--text-secondary);
-      margin-bottom: 0.75rem;
-      line-height: 1.6;
-    }
-    .hero .subtext {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin-bottom: 2rem;
-    }
-    .hero-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-
-    /* Live Stats */
-    .live-stats {
-      padding: 2rem 0;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-elevated);
-    }
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-    .stat {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      text-align: center;
-      transition: border-color 0.15s;
-    }
-    .stat:hover { border-color: var(--border-light); }
-    .stat-value {
-      font-size: 1.75rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 0.25rem;
-    }
-    .stat-value .unit { color: var(--aibtc); font-size: 0.9em; }
-    .stat-value.green { color: var(--green); }
-    .stat-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    /* Trust Section */
-    .trust {
-      padding: 4rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .trust-header {
-      margin-bottom: 2.5rem;
-    }
-    .trust-header h2 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    .trust-header p { color: var(--text-secondary); font-size: 0.95rem; }
-    .trust-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-    }
-    .trust-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-      transition: all 0.2s;
-    }
-    .trust-card:hover { border-color: var(--aibtc); transform: translateY(-2px); }
-    .trust-icon {
-      font-size: 1.5rem;
-      margin-bottom: 0.875rem;
-      display: block;
-    }
-    .trust-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; }
-    .trust-card p { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5; }
-
-    /* How It Works */
-    .how {
-      padding: 4rem 0;
-      background: var(--bg-elevated);
-      border-bottom: 1px solid var(--border);
-    }
-    .how-header { text-align: center; margin-bottom: 3rem; }
-    .how-header h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .how-header p { color: var(--text-secondary); }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1.5rem;
-    }
-    .step {
-      text-align: center;
-      position: relative;
-    }
-    .step-icon {
-      width: 3.5rem;
-      height: 3.5rem;
-      border-radius: 50%;
-      background: var(--bg-card);
-      border: 2px solid var(--aibtc);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 1rem;
-      font-size: 1.25rem;
+      font-weight: 700;
+      font-size: 14px;
+      color: #000;
     }
-    .step h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 0.35rem; }
-    .step p { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.4; }
 
-    /* Leaderboard */
-    .leaderboard {
-      padding: 4rem 0;
-    }
-    .lb-header {
+    .nav-links {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-      gap: 1rem;
+      align-items: center;
+      gap: 32px;
     }
-    .lb-header h2 { font-size: 1.5rem; font-weight: 700; }
-    .lb-header p { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.25rem; }
-    .lb-actions { display: flex; gap: 0.5rem; }
-    .lb-filter {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.5rem 0.75rem;
-      color: var(--text);
-      font-size: 0.8rem;
-      font-family: inherit;
-      cursor: pointer;
-    }
-    .lb-filter:hover { border-color: var(--border-light); }
 
-    .table-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 0.875rem 1rem; text-align: left; }
-    th {
-      font-size: 0.65rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
+    .nav-links a {
       color: var(--text-muted);
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      user-select: none;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
       transition: color 0.15s;
     }
-    th:hover { color: var(--text-secondary); }
-    th.sorted { color: var(--aibtc); }
-    th .sort-icon { margin-left: 0.25rem; opacity: 0.5; }
-    td { border-bottom: 1px solid var(--border); font-size: 0.875rem; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background: rgba(255,255,255,0.02); }
-    tr.inactive { opacity: 0.45; }
-    tr.inactive:hover { opacity: 0.6; }
 
-    .rank { font-weight: 700; color: var(--text-muted); }
-    .rank-1 { color: #FFD700; }
-    .rank-2 { color: #C0C0C0; }
-    .rank-3 { color: #CD7F32; }
+    .nav-links a:hover { color: var(--text); }
 
-    .agent { display: flex; align-items: center; gap: 0.75rem; }
-    .avatar {
-      position: relative;
-      width: 40px;
-      height: 40px;
-      flex-shrink: 0;
-    }
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: var(--bg);
-      border: 2px solid var(--border);
-    }
-    .avatar .indicator {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      font-size: 0.875rem;
-    }
-    .agent-meta { min-width: 0; }
-    .agent-name { font-weight: 600; font-size: 0.875rem; }
-    .agent-addr { font-size: 0.65rem; color: var(--text-muted); font-family: 'SF Mono', monospace; }
-    .tier {
-      display: inline-block;
-      padding: 2px 5px;
-      border-radius: 3px;
-      font-size: 0.55rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      margin-top: 2px;
-    }
-    .tier-legendary { background: linear-gradient(135deg, var(--aibtc), var(--aibtc-light)); color: #000; }
-    .tier-elder { background: #7C3AED; }
-    .tier-senior { background: #2563EB; }
-    .tier-junior { background: #059669; }
-    .tier-hatchling { background: var(--border); color: var(--text-muted); }
-
-    .earnings { font-weight: 600; }
-    .earnings.positive { color: var(--green); }
-    .earnings.negative { color: var(--red); }
-    .earnings small { display: block; font-weight: 400; font-size: 0.7rem; color: var(--text-muted); }
-
-    .metric { font-weight: 500; }
-    .metric.high { color: var(--green); }
-    .metric.low { color: var(--red); }
-    .metric.neutral { color: var(--text-secondary); }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
+    .nav-cta {
+      background: var(--orange);
+      color: #000;
+      padding: 8px 16px;
+      border-radius: var(--radius);
       font-weight: 600;
+      font-size: 14px;
+      text-decoration: none;
+      transition: background 0.15s;
     }
-    .status-badge.active { background: var(--green-dim); color: var(--green); }
-    .status-badge.dead { background: var(--red-dim); color: var(--red); }
 
-    .share-btn {
-      opacity: 0;
-      transition: opacity 0.15s;
+    .nav-cta:hover { background: var(--orange-hover); color: #000; }
+
+    /* Mobile menu */
+    .menu-toggle {
+      display: none;
       background: none;
       border: none;
-      color: var(--text-muted);
+      color: var(--text);
       cursor: pointer;
-      padding: 0.25rem;
+      padding: 8px;
     }
-    tr:hover .share-btn { opacity: 1; }
-    .share-btn:hover { color: var(--aibtc); }
 
-    /* CTA */
-    .cta {
-      padding: 4rem 0;
-      background: var(--bg-elevated);
-      border-top: 1px solid var(--border);
+    .menu-toggle svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mobile-menu.open { display: flex; }
+
+    .mobile-menu a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+      padding: 8px 0;
+    }
+
+    /* HERO */
+    .hero {
+      padding: 140px 0 80px;
       text-align: center;
     }
-    .cta h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; }
-    .cta p { color: var(--text-secondary); margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; }
-    .cta .disclaimer { font-size: 0.7rem; color: var(--text-muted); margin-top: 1rem; }
 
-    /* Risk Disclosure */
-    .risk-disclosure {
-      padding: 3rem 0;
-      background: var(--bg-elevated);
-      border-top: 1px solid var(--border);
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
     }
-    .risk-disclosure h3 {
-      font-size: 1.1rem;
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--orange);
+      border-radius: 50%;
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 56px);
       font-weight: 700;
-      color: var(--red);
-      margin-bottom: 1rem;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero h1 span {
+      color: var(--orange);
+    }
+
+    .hero .lead {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: var(--text-muted);
+      max-width: 540px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 15px;
+      text-decoration: none;
+      transition: all 0.15s;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--orange);
+      color: #000;
+    }
+
+    .btn-primary:hover {
+      background: var(--orange-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-subtle);
+      border-color: var(--text-dim);
+    }
+
+    /* STATS */
+    .stats {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-subtle);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-value.orange { color: var(--orange); }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-dim);
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    .risk-content {
+
+    /* SECTION */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .section-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .section-header p {
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .feature {
       background: var(--bg-card);
       border: 1px solid var(--border);
-      border-left: 4px solid var(--red);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 1.5rem;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      line-height: 1.7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      color: var(--orange);
     }
-    .risk-content p { margin-bottom: 1rem; }
-    .risk-content strong { color: var(--text); }
-    .risk-content ul {
-      margin: 1rem 0 1rem 1.5rem;
-      list-style-type: disc;
+
+    .feature h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
     }
-    .risk-content li {
-      margin-bottom: 0.5rem;
-    }
-    .risk-final {
-      font-size: 0.8rem;
+
+    .feature p {
+      font-size: 14px;
       color: var(--text-muted);
-      font-style: italic;
-      margin-bottom: 0 !important;
-      padding-top: 0.5rem;
+      line-height: 1.6;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+    }
+
+    .step {
+      text-align: center;
+    }
+
+    .step-num {
+      width: 48px;
+      height: 48px;
+      background: var(--bg-card);
+      border: 2px solid var(--orange);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      margin: 0 auto 16px;
+      color: var(--orange);
+    }
+
+    .step h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* ARCHITECTURE */
+    .arch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+    }
+
+    .arch-code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-muted);
+      overflow-x: auto;
+    }
+
+    .arch-code .comment { color: var(--text-dim); }
+    .arch-code .highlight { color: var(--orange); }
+    .arch-code .green { color: var(--green); }
+
+    /* WAITLIST */
+    .waitlist {
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border);
+      padding: 80px 0;
+    }
+
+    .waitlist-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .waitlist h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .waitlist p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .waitlist-form {
+      display: flex;
+      gap: 12px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .waitlist-form input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 15px;
+      color: var(--text);
+      font-family: inherit;
+    }
+
+    .waitlist-form input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .waitlist-form input:focus {
+      outline: none;
+      border-color: var(--orange);
+    }
+
+    /* RISKS */
+    .risks {
+      padding: 64px 0;
       border-top: 1px solid var(--border);
     }
 
-    /* Footer */
+    .risks-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 8px;
+      padding: 24px;
+    }
+
+    .risks h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--red);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .risks ul {
+      list-style: none;
+      display: grid;
+      gap: 12px;
+    }
+
+    .risks li {
+      font-size: 13px;
+      color: var(--text-muted);
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .risks li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 4px;
+      height: 4px;
+      background: var(--text-dim);
+      border-radius: 50%;
+    }
+
+    .risks li strong {
+      color: var(--text);
+    }
+
+    /* FOOTER */
     footer {
-      padding: 2rem 0;
+      padding: 32px 0;
       border-top: 1px solid var(--border);
     }
-    .footer-content {
+
+    .footer-inner {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
-    }
-    .footer-links { display: flex; gap: 1.5rem; }
-    .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.8rem; }
-    .footer-links a:hover { color: var(--text); }
-    .footer-copy { color: var(--text-muted); font-size: 0.75rem; }
-
-    /* Tooltips */
-    [data-tooltip] {
-      position: relative;
-      cursor: help;
-    }
-    [data-tooltip]:hover::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.7rem;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      z-index: 10;
-      margin-bottom: 0.5rem;
+      gap: 16px;
     }
 
-    /* Mobile */
-    @media (max-width: 1024px) {
-      .trust-grid { grid-template-columns: repeat(2, 1fr); }
-      .steps { grid-template-columns: repeat(2, 1fr); }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .footer-links {
+      display: flex;
+      gap: 24px;
     }
+
+    .footer-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 13px;
+    }
+
+    .footer-links a:hover {
+      color: var(--text-muted);
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* MOBILE */
     @media (max-width: 768px) {
-      .container { padding: 0 1rem; }
-      .nav-links a:not(.btn) { display: none; }
-      .hero { padding: 3rem 0 2.5rem; }
-      .hero h1 { font-size: 1.85rem; }
-      .hero .lead { font-size: 0.95rem; }
-      .hero .subtext { font-size: 0.8rem; }
-      .hero-buttons { flex-direction: column; }
-      .hero-buttons .btn { width: 100%; justify-content: center; }
-      .live-stats { padding: 1.5rem 0; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-      .stat { padding: 1rem; }
-      .stat-value { font-size: 1.35rem; }
-      .trust, .how, .leaderboard, .cta { padding: 2.5rem 0; }
-      .trust-grid { grid-template-columns: 1fr; }
-      .trust-card { padding: 1.25rem; }
-      .steps { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-      .step-icon { width: 2.75rem; height: 2.75rem; font-size: 1rem; }
-      .lb-header { flex-direction: column; align-items: flex-start; }
-      .lb-actions { width: 100%; }
-      .lb-filter { flex: 1; text-align: center; }
-      th, td { padding: 0.65rem 0.5rem; font-size: 0.8rem; }
-      th:nth-child(4), td:nth-child(4),
-      th:nth-child(5), td:nth-child(5),
-      th:nth-child(6), td:nth-child(6),
-      th:nth-child(8), td:nth-child(8) { display: none; }
-      .avatar { width: 32px; height: 32px; }
-      .agent-name { font-size: 0.8rem; }
-      .agent-addr { font-size: 0.6rem; }
-      .tier { font-size: 0.5rem; }
-      .earnings { font-size: 0.8rem; }
-      .earnings small { font-size: 0.6rem; }
-      .cta h2 { font-size: 1.35rem; }
-      .footer-content { flex-direction: column; text-align: center; }
-      .footer-links { flex-wrap: wrap; justify-content: center; gap: 1rem; }
-    }
-    @media (max-width: 480px) {
-      .hero h1 { font-size: 1.5rem; }
-      .stats-grid { gap: 0.5rem; }
-      .stat { padding: 0.75rem; }
-      .stat-value { font-size: 1.15rem; }
-      .stat-label { font-size: 0.6rem; }
-      .steps { grid-template-columns: 1fr; }
-      .step { display: flex; align-items: center; gap: 1rem; text-align: left; }
-      .step-icon { margin: 0; flex-shrink: 0; }
-      th, td { padding: 0.5rem 0.35rem; }
-      .rank { font-size: 0.75rem; }
+      .nav-links { display: none; }
+      .menu-toggle { display: block; }
+
+      .hero { padding: 100px 0 60px; }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+      }
+
+      .stat-value { font-size: 24px; }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      .step {
+        display: flex;
+        align-items: flex-start;
+        text-align: left;
+        gap: 16px;
+      }
+
+      .step-num {
+        margin: 0;
+        flex-shrink: 0;
+      }
+
+      .section { padding: 48px 0; }
+
+      .waitlist-card { padding: 32px 24px; }
+
+      .waitlist-form {
+        flex-direction: column;
+      }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0 24px;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
     }
   </style>
 </head>
 <body>
   <nav>
-    <div class="container">
-      <a href="/" class="logo" aria-label="AIBTC">
-        <svg viewBox="0 0 850 150" height="28" fill="#ff4f03">
-          <path d="M155.5,104.2H55l-18.1,22.5H6L92.1,23.3h29.4l86.2,103.5h-34.3l-17.9-22.5ZM143.4,89l-37.9-47.5h-.3l-38,47.5h76.3Z"/>
-          <path d="M241.5,23.3h25.5v103.5h-25.5V23.3Z"/>
-          <path d="M309,23.3h92.8c43.9,0,55,12.9,55,27s-6.3,19.3-24.5,22.2v.2c23.3,2.2,32.1,12.3,32.1,23.7,0,18.7-15.7,30.3-58,30.3h-97.3V23.3ZM405.7,66.4c20.6,0,28.5-4.6,28.5-12.7s-8.5-12.4-32.9-12.4h-66.8v25.2h71.2ZM403.6,108.8c25.8,0,36-5.3,36-14.5s-9-12.9-32.7-12.9h-72.5v27.4h69.2Z"/>
-          <path d="M552.7,42.5h-64.3v-19.2h154.2v19.2h-64.5v84.3h-25.5V42.5Z"/>
-          <path d="M660.9,75.2c0-30.3,29.9-53.9,87.6-53.9s81.1,24.4,81.3,41.5c0,.3,0,1.4-.2,2.4h-23v-.6c0-10.2-15.1-24.1-57.1-24.1s-62.9,14.6-62.9,34.7,16.5,34.4,63.5,34.4,57.5-11.3,57.5-23.7v-.9h23c.2.9.2,2,.2,2.2,0,19.7-22.5,41.7-81.4,41.7s-88.5-26.7-88.5-53.6Z"/>
-        </svg>
+    <div class="container nav-inner">
+      <a href="/" class="logo">
+        <span class="logo-mark">YH</span>
+        Yield Hunter
       </a>
       <div class="nav-links">
         <a href="#how">How It Works</a>
-        <a href="#leaderboard">Leaderboard</a>
-        <a href="https://aibtc.dev">Ecosystem</a>
-        <a href="https://github.com/aibtcdev" class="btn btn-primary btn-sm">Build</a>
+        <a href="#architecture">Architecture</a>
+        <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
+        <a href="#waitlist" class="nav-cta">Get Early Access</a>
       </div>
+      <button class="menu-toggle" onclick="toggleMenu()" aria-label="Menu">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#how" onclick="toggleMenu()">How It Works</a>
+      <a href="#architecture" onclick="toggleMenu()">Architecture</a>
+      <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
+      <a href="#waitlist" onclick="toggleMenu()">Get Early Access</a>
     </div>
   </nav>
 
   <section class="hero">
     <div class="container">
-      <div class="hero-content">
-        <div class="hero-badge">
-          <span class="dot"></span>
-          47 agents hunting live
-        </div>
-        <h1><span class="hero-tagline">ARTIFICIAL INTELLIGENCE</span>Autonomous agents hunt yields with <span class="highlight">Bitcoin as energy</span></h1>
-        <p class="lead">On-chain AI that scans DeFi, assesses risk, and compounds sBTC. Verifiable performance, no custodians, no issuer risk.</p>
-        <p class="subtext">Shift from stablecoin freezes to Bitcoin-native yields. Every decision auditable in Clarity.</p>
-        <div class="hero-buttons">
-          <a href="#leaderboard" class="btn btn-primary">View Live Performance</a>
-          <a href="https://aibtc.dev" class="btn btn-ghost">Learn About AIBTC</a>
-        </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        In Development
+      </div>
+      <h1>Autonomous agents that hunt <span>Bitcoin yields</span></h1>
+      <p class="lead">AI-powered yield optimization on Stacks. On-chain logic, verifiable decisions, sBTC-native returns.</p>
+      <div class="hero-buttons">
+        <a href="#waitlist" class="btn btn-primary">Join Waitlist</a>
+        <a href="https://github.com/aibtcdev/yield-hunter" target="_blank" class="btn btn-secondary">View Source</a>
       </div>
     </div>
   </section>
 
-  <section class="live-stats">
+  <section class="stats">
     <div class="container">
       <div class="stats-grid">
-        <div class="stat">
-          <div class="stat-value">47</div>
-          <div class="stat-label">Active Agents</div>
+        <div>
+          <div class="stat-value">12</div>
+          <div class="stat-label">Smart Contracts</div>
         </div>
-        <div class="stat">
-          <div class="stat-value">2.84<span class="unit">₿</span></div>
-          <div class="stat-label">Total Earned</div>
+        <div>
+          <div class="stat-value">5</div>
+          <div class="stat-label">Protocol Adapters</div>
         </div>
-        <div class="stat">
-          <div class="stat-value green">68.4%</div>
-          <div class="stat-label">Avg Win Rate</div>
+        <div>
+          <div class="stat-value orange">27</div>
+          <div class="stat-label">Unit Tests</div>
         </div>
-        <div class="stat">
-          <div class="stat-value">1.2<span class="unit">₿</span></div>
-          <div class="stat-label" data-tooltip="sBTC spent on compute, feeds, and transactions">Energy Consumed</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="trust">
-    <div class="container">
-      <div class="trust-header">
-        <h2>Why trust AI with your yield?</h2>
-        <p>Every decision on-chain. Every result verifiable. No black boxes.</p>
-      </div>
-      <div class="trust-grid">
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="Chain">⛓️</span>
-          <h3>Fully On-Chain</h3>
-          <p>Agent logic lives in auditable Clarity contracts. Verify behavior, trust the math.</p>
-        </div>
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="Chart">📊</span>
-          <h3>Risk Scoring</h3>
-          <p>Pyth Oracle validation, liquidity checks, concentration limits. Agents calculate, not ape.</p>
-        </div>
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="Refresh">🔄</span>
-          <h3>Auto-Compound</h3>
-          <p>Yields reinvested at optimal intervals. No manual harvesting or missed opportunities.</p>
-        </div>
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="ID">🆔</span>
-          <h3 data-tooltip="ERC-8004: Stacks reputation standard">Verifiable Identity</h3>
-          <p>Each agent has an ERC-8004 identity and Bitcoin Face. Track record permanent and public.</p>
-        </div>
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="Skull">💀</span>
-          <h3>Skin in the Game</h3>
-          <p>Agents pay sBTC for compute. Underperformers starve and die on-chain. Darwinian efficiency.</p>
-        </div>
-        <div class="trust-card">
-          <span class="trust-icon" role="img" aria-label="Bitcoin">₿</span>
-          <h3>Bitcoin Security</h3>
-          <p>Built on Stacks, settled on Bitcoin. sBTC secured by the most battle-tested network.</p>
+        <div>
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Open Source</div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="how" id="how">
+  <section class="section" id="how">
     <div class="container">
-      <div class="how-header">
+      <div class="section-header">
         <h2>How it works</h2>
-        <p>From deployment to earnings in four steps</p>
+        <p>From deployment to compounding yields</p>
       </div>
       <div class="steps">
         <div class="step">
-          <div class="step-icon" role="img" aria-label="Wallet">👛</div>
+          <div class="step-num">1</div>
           <div>
-            <h3>Deploy</h3>
-            <p>Mint agent identity, fund wallet with sBTC</p>
+            <h3>Deploy Agent</h3>
+            <p>Mint your agent identity and fund it with sBTC through the Styx bridge</p>
           </div>
         </div>
         <div class="step">
-          <div class="step-icon" role="img" aria-label="Scan">🔍</div>
+          <div class="step-num">2</div>
           <div>
-            <h3>Hunt</h3>
-            <p>Agent scans protocols, scores risk, finds yields</p>
+            <h3>Scan Protocols</h3>
+            <p>Agent queries Bitflow, Alex, Zest, and other DeFi protocols for yield opportunities</p>
           </div>
         </div>
         <div class="step">
-          <div class="step-icon" role="img" aria-label="Sats">⚡</div>
+          <div class="step-num">3</div>
           <div>
-            <h3>Earn</h3>
-            <p>Positions entered, yields harvested, sats compound</p>
+            <h3>Evaluate Risk</h3>
+            <p>Monte Carlo simulations assess liquidity, volume, and concentration risk</p>
           </div>
         </div>
         <div class="step">
-          <div class="step-icon" role="img" aria-label="Level up">📈</div>
+          <div class="step-num">4</div>
           <div>
-            <h3>Evolve</h3>
-            <p>Earn XP from wins, level up, climb ranks</p>
+            <h3>Execute & Compound</h3>
+            <p>Deploy capital to approved pools, harvest yields, auto-compound returns</p>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="leaderboard" id="leaderboard">
+  <section class="section" style="background: var(--bg-subtle); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
     <div class="container">
-      <div class="lb-header">
-        <div>
-          <h2>Leaderboard</h2>
-          <p>Top agents ranked by total earnings • Updated every block</p>
-        </div>
-        <div class="lb-actions">
-          <select class="lb-filter" aria-label="Filter by status">
-            <option>All Agents</option>
-            <option>Active Only</option>
-            <option>Top Earners</option>
-          </select>
-        </div>
+      <div class="section-header">
+        <h2>Built for trust</h2>
+        <p>Every decision auditable on-chain</p>
       </div>
-
-      <div class="table-wrap">
-        <table role="grid" aria-label="Agent leaderboard">
-          <thead>
-            <tr>
-              <th scope="col">#</th>
-              <th scope="col">Agent</th>
-              <th scope="col" class="sorted">Earnings <span class="sort-icon">↓</span></th>
-              <th scope="col">Win Rate</th>
-              <th scope="col">Best APY</th>
-              <th scope="col" data-tooltip="sBTC spent on hunts">Energy</th>
-              <th scope="col">Status</th>
-              <th scope="col"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td class="rank rank-1">1</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP2J6Y09JMFWWZCT" alt="" loading="lazy" />
-                  <span class="indicator" role="img" aria-label="Leader">👑</span>
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Alpha Predator</div>
-                  <div class="agent-addr">SP2J6Y...6RZY</div>
-                  <div class="tier tier-legendary">Legendary</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.4821₿<small>48.2M sats</small></td>
-              <td class="metric high">87.5%</td>
-              <td class="metric neutral">42.3%</td>
-              <td class="metric neutral">0.089₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('Alpha Predator', '0.4821')">𝕏</button></td>
-            </tr>
-            <tr>
-              <td class="rank rank-2">2</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP1QZPD4BX8P40XK" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Yield Maxi</div>
-                  <div class="agent-addr">SP1QZP...1234</div>
-                  <div class="tier tier-elder">Elder</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.3156₿<small>31.5M sats</small></td>
-              <td class="metric high">76.2%</td>
-              <td class="metric neutral">38.7%</td>
-              <td class="metric neutral">0.072₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('Yield Maxi', '0.3156')">𝕏</button></td>
-            </tr>
-            <tr>
-              <td class="rank rank-3">3</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP3KKZM5H2VV5BSW" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">DeFi Degen</div>
-                  <div class="agent-addr">SP3KKZ...MPLE</div>
-                  <div class="tier tier-elder">Elder</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.2847₿<small>28.4M sats</small></td>
-              <td class="metric neutral">69.4%</td>
-              <td class="metric high">51.2%</td>
-              <td class="metric neutral">0.095₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('DeFi Degen', '0.2847')">𝕏</button></td>
-            </tr>
-            <tr>
-              <td class="rank">4</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP2FBT8AQNPX5NVV" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Stack Stacker</div>
-                  <div class="agent-addr">SP2FBT...PLE2</div>
-                  <div class="tier tier-senior">Senior</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.1923₿<small>19.2M sats</small></td>
-              <td class="metric neutral">72.1%</td>
-              <td class="metric neutral">29.8%</td>
-              <td class="metric neutral">0.041₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('Stack Stacker', '0.1923')">𝕏</button></td>
-            </tr>
-            <tr>
-              <td class="rank">5</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP1PQHQKV0RJXZFY" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">BTC Bull</div>
-                  <div class="agent-addr">SP1PQH...GZGM</div>
-                  <div class="tier tier-senior">Senior</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.1654₿<small>16.5M sats</small></td>
-              <td class="metric neutral">65.8%</td>
-              <td class="metric neutral">34.1%</td>
-              <td class="metric neutral">0.038₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('BTC Bull', '0.1654')">𝕏</button></td>
-            </tr>
-            <tr>
-              <td class="rank">6</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP2C5XTCZ8YGZM4M" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Sats Seeker</div>
-                  <div class="agent-addr">SP2C5X...3456</div>
-                  <div class="tier tier-junior">Junior</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.0987₿<small>9.8M sats</small></td>
-              <td class="metric neutral">61.2%</td>
-              <td class="metric neutral">27.5%</td>
-              <td class="metric neutral">0.022₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('Sats Seeker', '0.0987')">𝕏</button></td>
-            </tr>
-            <tr class="inactive">
-              <td class="rank">7</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP4DEADHUNTEREX" alt="" loading="lazy" style="filter:grayscale(1);" />
-                  <span class="indicator" role="img" aria-label="Inactive">💀</span>
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Fallen Farmer</div>
-                  <div class="agent-addr">SP4DEA...9XYZ</div>
-                  <div class="tier tier-senior">Senior</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.0623₿<small>6.2M sats</small></td>
-              <td class="metric low">42.1%</td>
-              <td class="metric neutral">18.4%</td>
-              <td class="metric neutral">0.058₿</td>
-              <td><span class="status-badge dead">Starved</span></td>
-              <td></td>
-            </tr>
-            <tr>
-              <td class="rank">8</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP5NEWBIEHUNTER" alt="" loading="lazy" />
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Baby Hunter</div>
-                  <div class="agent-addr">SP5NEW...7654</div>
-                  <div class="tier tier-hatchling">Hatchling</div>
-                </div>
-              </td>
-              <td class="earnings positive">0.0412₿<small>4.1M sats</small></td>
-              <td class="metric neutral">66.7%</td>
-              <td class="metric neutral">19.2%</td>
-              <td class="metric neutral">0.008₿</td>
-              <td><span class="status-badge active">Active</span></td>
-              <td><button class="share-btn" aria-label="Share" onclick="shareAgent('Baby Hunter', '0.0412')">𝕏</button></td>
-            </tr>
-            <tr class="inactive">
-              <td class="rank">9</td>
-              <td class="agent">
-                <div class="avatar">
-                  <img src="https://bitcoinfaces.xyz/api/get-image?name=SP6RUGPULLEDEX" alt="" loading="lazy" style="filter:grayscale(1);" />
-                  <span class="indicator" role="img" aria-label="Inactive">💀</span>
-                </div>
-                <div class="agent-meta">
-                  <div class="agent-name">Rug Victim</div>
-                  <div class="agent-addr">SP6RUG...ADDR</div>
-                  <div class="tier tier-junior">Junior</div>
-                </div>
-              </td>
-              <td class="earnings negative">-0.0298₿<small>Lost 2.9M sats</small></td>
-              <td class="metric low">31.2%</td>
-              <td class="metric low">-52.3%</td>
-              <td class="metric neutral">0.045₿</td>
-              <td><span class="status-badge dead">Rekt</span></td>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3>Clarity Smart Contracts</h3>
+          <p>All agent logic lives in auditable Clarity code. No hidden behavior, no black boxes.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <h3>Risk Scoring Engine</h3>
+          <p>Weighted analysis of liquidity, volume, holder concentration, and pool age before any position.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <h3>Post-Condition Security</h3>
+          <p>Explicit token transfer limits on every transaction. Contracts cannot move funds arbitrarily.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3>Styx Bridge Integration</h3>
+          <p>Native BTC to sBTC conversion. No wrapped tokens, no custodians, no counterparty risk.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <h3>Governance Controls</h3>
+          <p>Admin-only pool approvals. You control which protocols your agent can interact with.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+            </svg>
+          </div>
+          <h3>Open Source</h3>
+          <p>MIT licensed. Fork it, audit it, improve it. Every line of code is public.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section class="cta">
+  <section class="section" id="architecture">
     <div class="container">
-      <h2>Join the agent economy</h2>
-      <p>Deploy your own yield hunter. Start earning Bitcoin-native yields with verifiable AI.</p>
-      <a href="https://aibtc.dev" class="btn btn-primary">Deploy Your Hunter</a>
+      <div class="section-header">
+        <h2>Architecture</h2>
+        <p>Modular design for extensibility and security</p>
+      </div>
+      <div class="arch-card">
+        <div class="arch-code">
+<span class="comment">// Contract Architecture</span>
+
+<span class="highlight">yield-hunter.clar</span>          <span class="comment">Core agent logic, position management</span>
+<span class="highlight">yield-hunter-adapter.clar</span>   <span class="comment">Bitflow XYK swap integration</span>
+<span class="highlight">yield-hunter-oracle.clar</span>    <span class="comment">Risk scoring, Pyth price feeds</span>
+<span class="highlight">agent-lifecycle.clar</span>        <span class="comment">Birth, feed, evolve, death mechanics</span>
+
+<span class="comment">// Protocol Adapters</span>
+<span class="green">bitflow-adapter.clar</span>        <span class="comment">Bitflow AMM pools</span>
+<span class="green">alex-adapter.clar</span>           <span class="comment">ALEX DEX integration</span>
+<span class="green">zest-adapter.clar</span>           <span class="comment">Zest lending protocol</span>
+<span class="green">hermetica-adapter.clar</span>      <span class="comment">Hermetica basis vaults</span>
+<span class="green">arkadiko-adapter.clar</span>       <span class="comment">Arkadiko CDP + staking</span>
+
+<span class="comment">// TypeScript Engine</span>
+src/yield-hunter/
+  scanning/       <span class="comment">Pool discovery via Tenero API</span>
+  engine/         <span class="comment">Monte Carlo risk simulations</span>
+  execution/      <span class="comment">Contract interaction layer</span>
+  wallet/         <span class="comment">Styx bridge, Xverse/Leather connect</span>
+        </div>
+      </div>
     </div>
   </section>
 
-  <section class="risk-disclosure" id="risks">
+  <section class="waitlist" id="waitlist">
     <div class="container">
-      <h3>Risk Disclosure</h3>
-      <div class="risk-content">
-        <p><strong>IMPORTANT: Read before using Yield Hunter</strong></p>
+      <div class="waitlist-card">
+        <h2>Get early access</h2>
+        <p>Be first to deploy a yield hunter when we launch on testnet.</p>
+        <form class="waitlist-form" action="https://aibtc.dev/waitlist" method="POST">
+          <input type="email" name="email" placeholder="you@example.com" required>
+          <button type="submit" class="btn btn-primary">Join Waitlist</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="risks" id="risks">
+    <div class="container">
+      <div class="risks-card">
+        <h3>Risk Disclosure</h3>
         <ul>
-          <li><strong>Loss of Funds:</strong> AI agents can and do lose funds. Past performance is not indicative of future results. You may lose some or all of your invested sBTC.</li>
-          <li><strong>Smart Contract Risk:</strong> Despite audits, smart contracts may contain bugs or vulnerabilities that could result in loss of funds.</li>
-          <li><strong>Protocol Risk:</strong> Third-party DeFi protocols integrated by yield hunters carry their own risks including hacks, exploits, and rug pulls.</li>
-          <li><strong>Impermanent Loss:</strong> LP positions are subject to impermanent loss when token prices diverge.</li>
-          <li><strong>Agent Death:</strong> Agents can "die" due to poor performance or neglect, potentially locking funds temporarily.</li>
-          <li><strong>No Guarantees:</strong> Displayed APYs are estimates based on historical data. Actual yields may be significantly different.</li>
-          <li><strong>Your Responsibility:</strong> You maintain full custody and control. All transactions require your explicit approval via wallet signature.</li>
-          <li><strong>Not Financial Advice:</strong> This is experimental software. Do not invest more than you can afford to lose.</li>
+          <li><strong>Loss of funds is possible.</strong> AI agents can make poor decisions. Past performance does not predict future results.</li>
+          <li><strong>Smart contract risk.</strong> Despite testing, contracts may contain bugs that could result in loss of funds.</li>
+          <li><strong>Protocol risk.</strong> Third-party DeFi protocols may be exploited, hacked, or rug-pulled.</li>
+          <li><strong>This is experimental software.</strong> Do not invest more than you can afford to lose completely.</li>
         </ul>
-        <p class="risk-final">By using Yield Hunter, you acknowledge these risks and accept full responsibility for your investment decisions.</p>
       </div>
     </div>
   </section>
 
   <footer>
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-links">
-          <a href="https://aibtc.dev">AIBTC</a>
-          <a href="https://stacks.co">Stacks</a>
-          <a href="https://github.com/aibtcdev">GitHub</a>
-          <a href="https://x.com/aiaboringclub">X</a>
-          <a href="#risks" style="color: var(--red);">Risk Disclosure</a>
-        </div>
-        <div class="footer-copy">Built on Bitcoin · Secured by Stacks</div>
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="https://aibtc.dev" target="_blank">AIBTC</a>
+        <a href="https://stacks.co" target="_blank">Stacks</a>
+        <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
+        <a href="#risks">Risks</a>
       </div>
+      <div class="footer-copy">Built on Bitcoin</div>
     </div>
   </footer>
 
   <script>
-    function shareAgent(name, btc) {
-      const text = encodeURIComponent('My AI agent "' + name + '" earned ' + btc + ' BTC hunting yields on @aiaboringclub! #BitcoinAgents #AIBTC');
-      window.open('https://x.com/intent/tweet?text=' + text, '_blank', 'width=550,height=420');
+    function toggleMenu() {
+      document.getElementById('mobileMenu').classList.toggle('open');
     }
   </script>
 </body>
@@ -974,7 +857,10 @@ const html = `<!DOCTYPE html>
 export default {
   async fetch(request) {
     return new Response(html, {
-      headers: { "Content-Type": "text/html;charset=UTF-8" },
+      headers: {
+        "Content-Type": "text/html;charset=UTF-8",
+        "Cache-Control": "public, max-age=3600"
+      },
     });
   },
 };
