@@ -1,26 +1,26 @@
-// AIBTC Yield Hunter - Production Landing Page
+// AIBTC Yield Hunter - Full Functional App
 
 const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Yield Hunter | Autonomous Bitcoin Yield Agents</title>
-  <meta name="description" content="Autonomous AI agents that hunt DeFi yields on Bitcoin L2. Built on Stacks, powered by sBTC.">
-  <meta property="og:title" content="Yield Hunter | AIBTC">
-  <meta property="og:description" content="Autonomous AI agents hunting yields on Bitcoin.">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
+  <title>Yield Hunter | AIBTC</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@stacks/connect@7.7.1/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/@stacks/network@6.13.0/dist/umd/index.js"></script>
+  <script src="https://unpkg.com/@stacks/transactions@6.13.0/dist/umd/index.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --orange: #ff4f03;
       --orange-hover: #e54600;
       --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.15);
       --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.15);
+      --blue: #3b82f6;
       --bg: #09090b;
       --bg-subtle: #0f0f12;
       --bg-card: #18181b;
@@ -30,46 +30,36 @@ const html = `<!DOCTYPE html>
       --text-dim: #52525b;
       --radius: 8px;
     }
-
     html { scroll-behavior: smooth; }
-
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
+      min-height: 100vh;
     }
-
     .mono { font-family: 'JetBrains Mono', monospace; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
-    .container {
-      width: 100%;
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 0 24px;
-    }
-
-    /* NAV */
+    /* Nav */
     nav {
-      position: fixed;
+      position: sticky;
       top: 0;
-      left: 0;
-      right: 0;
       z-index: 100;
-      background: rgba(9, 9, 11, 0.8);
+      background: rgba(9, 9, 11, 0.9);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
+      padding: 0 20px;
     }
-
     .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      height: 64px;
+      height: 60px;
     }
-
     .logo {
       font-weight: 700;
       font-size: 18px;
@@ -77,14 +67,13 @@ const html = `<!DOCTYPE html>
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
-
     .logo-mark {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       background: var(--orange);
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -92,354 +81,150 @@ const html = `<!DOCTYPE html>
       font-size: 14px;
       color: #000;
     }
-
-    .nav-links {
+    .nav-tabs {
       display: flex;
-      align-items: center;
-      gap: 32px;
+      gap: 8px;
     }
-
-    .nav-links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 14px;
-      font-weight: 500;
-      transition: color 0.15s;
-    }
-
-    .nav-links a:hover { color: var(--text); }
-
-    .nav-cta {
-      background: var(--orange);
-      color: #000;
+    .nav-tab {
       padding: 8px 16px;
       border-radius: var(--radius);
-      font-weight: 600;
       font-size: 14px;
-      text-decoration: none;
-      transition: background 0.15s;
-    }
-
-    .nav-cta:hover { background: var(--orange-hover); color: #000; }
-
-    /* Mobile menu */
-    .menu-toggle {
-      display: none;
+      font-weight: 500;
+      color: var(--text-muted);
       background: none;
       border: none;
-      color: var(--text);
       cursor: pointer;
-      padding: 8px;
+      transition: all 0.15s;
     }
-
-    .menu-toggle svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .mobile-menu {
-      display: none;
-      position: fixed;
-      top: 64px;
-      left: 0;
-      right: 0;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .mobile-menu.open { display: flex; }
-
-    .mobile-menu a {
-      color: var(--text-muted);
-      text-decoration: none;
-      font-size: 16px;
-      font-weight: 500;
-      padding: 8px 0;
-    }
-
-    /* HERO */
-    .hero {
-      padding: 140px 0 80px;
-      text-align: center;
-    }
-
-    .badge {
-      display: inline-flex;
+    .nav-tab:hover { color: var(--text); background: var(--bg-card); }
+    .nav-tab.active { color: var(--text); background: var(--bg-card); }
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .wallet-btn {
+      display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 6px 12px;
-      border-radius: 100px;
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
+      padding: 8px 16px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      font-family: inherit;
     }
-
-    .badge-dot {
+    .wallet-btn.connect {
+      background: var(--orange);
+      color: #000;
+    }
+    .wallet-btn.connect:hover { background: var(--orange-hover); }
+    .wallet-btn.connected {
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .wallet-btn.connected:hover { border-color: var(--text-dim); }
+    .wallet-dot {
       width: 8px;
       height: 8px;
-      background: var(--orange);
+      background: var(--green);
       border-radius: 50%;
     }
 
-    .hero h1 {
-      font-size: clamp(32px, 6vw, 56px);
-      font-weight: 700;
-      line-height: 1.1;
-      letter-spacing: -0.02em;
-      margin-bottom: 20px;
-      max-width: 720px;
-      margin-left: auto;
-      margin-right: auto;
-    }
+    /* Main content */
+    main { padding: 24px 0; }
+    .view { display: none; }
+    .view.active { display: block; }
 
-    .hero h1 span {
-      color: var(--orange);
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
     }
-
-    .hero .lead {
-      font-size: clamp(16px, 2.5vw, 20px);
-      color: var(--text-muted);
-      max-width: 540px;
-      margin: 0 auto 32px;
-    }
-
-    .hero-buttons {
+    .card-header {
       display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
     }
 
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+    /* Stats */
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .stat-value.orange { color: var(--orange); }
+    .stat-value.green { color: var(--green); }
+    .stat-change {
+      font-size: 13px;
+      margin-top: 4px;
+    }
+    .stat-change.up { color: var(--green); }
+    .stat-change.down { color: var(--red); }
+
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      padding: 12px 24px;
+      padding: 12px 20px;
       border-radius: var(--radius);
       font-weight: 600;
-      font-size: 15px;
-      text-decoration: none;
-      transition: all 0.15s;
+      font-size: 14px;
       cursor: pointer;
       border: none;
+      transition: all 0.15s;
       font-family: inherit;
+      text-decoration: none;
     }
-
-    .btn-primary {
-      background: var(--orange);
-      color: #000;
-    }
-
-    .btn-primary:hover {
-      background: var(--orange-hover);
-    }
-
+    .btn-primary { background: var(--orange); color: #000; }
+    .btn-primary:hover { background: var(--orange-hover); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-secondary {
-      background: var(--bg-card);
+      background: var(--bg-subtle);
       color: var(--text);
       border: 1px solid var(--border);
     }
+    .btn-secondary:hover { border-color: var(--text-dim); }
+    .btn-sm { padding: 8px 14px; font-size: 13px; }
+    .btn-lg { padding: 14px 28px; font-size: 16px; }
 
-    .btn-secondary:hover {
-      background: var(--bg-subtle);
-      border-color: var(--text-dim);
-    }
-
-    /* STATS */
-    .stats {
-      padding: 48px 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-subtle);
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 24px;
-      text-align: center;
-    }
-
-    .stat-value {
-      font-size: 32px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .stat-value.orange { color: var(--orange); }
-
-    .stat-label {
-      font-size: 13px;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* SECTION */
-    .section {
-      padding: 80px 0;
-    }
-
-    .section-header {
-      text-align: center;
-      margin-bottom: 48px;
-    }
-
-    .section-header h2 {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .section-header p {
-      color: var(--text-muted);
-      font-size: 16px;
-    }
-
-    /* FEATURES */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 24px;
-    }
-
-    .feature {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 28px;
-    }
-
-    .feature-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--bg-subtle);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      color: var(--orange);
-    }
-
-    .feature h3 {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .feature p {
+    /* Forms */
+    .form-group { margin-bottom: 20px; }
+    .form-label {
+      display: block;
       font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* HOW IT WORKS */
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 32px;
-    }
-
-    .step {
-      text-align: center;
-    }
-
-    .step-num {
-      width: 48px;
-      height: 48px;
-      background: var(--bg-card);
-      border: 2px solid var(--orange);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 18px;
-      margin: 0 auto 16px;
-      color: var(--orange);
-    }
-
-    .step h3 {
-      font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
       margin-bottom: 8px;
-    }
-
-    .step p {
-      font-size: 14px;
       color: var(--text-muted);
     }
-
-    /* ARCHITECTURE */
-    .arch-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 32px;
-    }
-
-    .arch-code {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 24px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      line-height: 1.8;
-      color: var(--text-muted);
-      overflow-x: auto;
-    }
-
-    .arch-code .comment { color: var(--text-dim); }
-    .arch-code .highlight { color: var(--orange); }
-    .arch-code .green { color: var(--green); }
-
-    /* WAITLIST */
-    .waitlist {
-      background: var(--bg-subtle);
-      border-top: 1px solid var(--border);
-      padding: 80px 0;
-    }
-
-    .waitlist-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 48px;
-      text-align: center;
-      max-width: 560px;
-      margin: 0 auto;
-    }
-
-    .waitlist h2 {
-      font-size: 24px;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .waitlist p {
-      color: var(--text-muted);
-      margin-bottom: 24px;
-    }
-
-    .waitlist-form {
-      display: flex;
-      gap: 12px;
-      max-width: 400px;
-      margin: 0 auto;
-    }
-
-    .waitlist-form input {
-      flex: 1;
+    .form-input {
+      width: 100%;
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
@@ -447,420 +232,886 @@ const html = `<!DOCTYPE html>
       font-size: 15px;
       color: var(--text);
       font-family: inherit;
+      transition: border-color 0.15s;
     }
-
-    .waitlist-form input::placeholder {
-      color: var(--text-dim);
-    }
-
-    .waitlist-form input:focus {
+    .form-input:focus {
       outline: none;
       border-color: var(--orange);
     }
-
-    /* RISKS */
-    .risks {
-      padding: 64px 0;
-      border-top: 1px solid var(--border);
+    .form-input::placeholder { color: var(--text-dim); }
+    .form-hint {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 6px;
     }
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+    .input-group .form-input { flex: 1; }
 
-    .risks-card {
-      background: var(--bg-card);
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
       border: 1px solid var(--border);
-      border-left: 3px solid var(--red);
-      border-radius: 8px;
-      padding: 24px;
+      border-radius: 12px;
     }
-
-    .risks h3 {
-      font-size: 14px;
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 16px; text-align: left; }
+    th {
+      font-size: 12px;
       font-weight: 600;
-      color: var(--red);
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 16px;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border);
     }
+    td {
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover { background: rgba(255,255,255,0.02); }
 
-    .risks ul {
-      list-style: none;
-      display: grid;
+    /* Agent row */
+    .agent-cell {
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
-
-    .risks li {
-      font-size: 13px;
-      color: var(--text-muted);
-      padding-left: 16px;
-      position: relative;
-    }
-
-    .risks li::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 8px;
-      width: 4px;
-      height: 4px;
-      background: var(--text-dim);
+    .agent-avatar {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
+      background: var(--bg);
+      border: 2px solid var(--border);
+    }
+    .agent-name { font-weight: 600; }
+    .agent-addr {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .risks li strong {
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-green { background: var(--green-dim); color: var(--green); }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-orange { background: rgba(255,79,3,0.15); color: var(--orange); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-subtle);
+      padding: 4px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { background: var(--bg-card); color: var(--text); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .empty-state h3 {
+      font-size: 18px;
+      font-weight: 600;
       color: var(--text);
+      margin-bottom: 8px;
     }
+    .empty-state p { margin-bottom: 20px; }
 
-    /* FOOTER */
-    footer {
-      padding: 32px 0;
-      border-top: 1px solid var(--border);
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-
-    .footer-inner {
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title { font-size: 18px; font-weight: 600; }
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+    .modal-close:hover { color: var(--text); }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    /* Positions */
+    .position-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .position-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    .position-pool { font-weight: 600; font-size: 16px; }
+    .position-protocol {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .position-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
     }
-
-    .footer-links {
-      display: flex;
-      gap: 24px;
-    }
-
-    .footer-links a {
+    .position-stat-label {
+      font-size: 12px;
       color: var(--text-dim);
-      text-decoration: none;
-      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .position-stat-value {
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    .footer-links a:hover {
-      color: var(--text-muted);
+    /* Alert */
+    .alert {
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .alert-warning {
+      background: rgba(234, 179, 8, 0.1);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      color: #eab308;
+    }
+    .alert-error {
+      background: var(--red-dim);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: var(--red);
     }
 
-    .footer-copy {
-      font-size: 13px;
-      color: var(--text-dim);
+    /* Loading */
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* MOBILE */
+    /* Responsive */
     @media (max-width: 768px) {
-      .nav-links { display: none; }
-      .menu-toggle { display: block; }
-
-      .hero { padding: 100px 0 60px; }
-
-      .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 16px;
-      }
-
-      .stat-value { font-size: 24px; }
-
-      .features-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
-      }
-
-      .steps {
-        grid-template-columns: 1fr;
-        gap: 24px;
-      }
-
-      .step {
-        display: flex;
-        align-items: flex-start;
-        text-align: left;
-        gap: 16px;
-      }
-
-      .step-num {
-        margin: 0;
-        flex-shrink: 0;
-      }
-
-      .section { padding: 48px 0; }
-
-      .waitlist-card { padding: 32px 24px; }
-
-      .waitlist-form {
-        flex-direction: column;
-      }
-
-      .hero-buttons {
-        flex-direction: column;
-        align-items: stretch;
-        padding: 0 24px;
-      }
-
-      .footer-inner {
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .footer-links {
-        flex-wrap: wrap;
-        justify-content: center;
-      }
+      .nav-tabs { display: none; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .position-stats { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 10px 12px; }
+      .hide-mobile { display: none; }
     }
+
+    /* Connect prompt */
+    .connect-prompt {
+      text-align: center;
+      padding: 80px 20px;
+    }
+    .connect-prompt h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    .connect-prompt p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Risk banner */
+    .risk-banner {
+      background: var(--red-dim);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 10px 20px;
+      font-size: 13px;
+      color: var(--red);
+      text-align: center;
+    }
+    .risk-banner a { color: inherit; text-decoration: underline; }
   </style>
 </head>
 <body>
+  <div class="risk-banner">
+    This is experimental software. You may lose funds. <a href="#" onclick="showRisks()">Read risks</a>
+  </div>
+
   <nav>
-    <div class="container nav-inner">
+    <div class="nav-inner">
       <a href="/" class="logo">
         <span class="logo-mark">YH</span>
         Yield Hunter
       </a>
-      <div class="nav-links">
-        <a href="#how">How It Works</a>
-        <a href="#architecture">Architecture</a>
-        <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
-        <a href="#waitlist" class="nav-cta">Get Early Access</a>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showView('dashboard')">Dashboard</button>
+        <button class="nav-tab" onclick="showView('deposit')">Deposit</button>
+        <button class="nav-tab" onclick="showView('agents')">My Agents</button>
+        <button class="nav-tab" onclick="showView('leaderboard')">Leaderboard</button>
       </div>
-      <button class="menu-toggle" onclick="toggleMenu()" aria-label="Menu">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-        </svg>
-      </button>
-    </div>
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="#how" onclick="toggleMenu()">How It Works</a>
-      <a href="#architecture" onclick="toggleMenu()">Architecture</a>
-      <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
-      <a href="#waitlist" onclick="toggleMenu()">Get Early Access</a>
+      <div class="nav-right">
+        <button class="wallet-btn connect" id="walletBtn" onclick="connectWallet()">
+          Connect Wallet
+        </button>
+      </div>
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="container">
-      <div class="badge">
-        <span class="badge-dot"></span>
-        In Development
+  <main class="container">
+    <!-- Not connected state -->
+    <div id="notConnected" class="connect-prompt">
+      <h2>Connect your wallet to start</h2>
+      <p>Sign in with your Stacks wallet to deploy yield hunters, deposit sBTC, and track performance.</p>
+      <button class="btn btn-primary btn-lg" onclick="connectWallet()">
+        Connect Stacks Wallet
+      </button>
+      <p style="margin-top: 24px; font-size: 13px; color: var(--text-dim);">
+        Works with Leather and Xverse wallets
+      </p>
+    </div>
+
+    <!-- Connected views -->
+    <div id="connectedViews" style="display: none;">
+      <!-- Dashboard -->
+      <div id="view-dashboard" class="view active">
+        <div class="grid-4" style="margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-label">Portfolio Value</div>
+            <div class="stat-value" id="statPortfolio">0.00 sBTC</div>
+            <div class="stat-change up" id="statPortfolioChange">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Total Earned</div>
+            <div class="stat-value green" id="statEarned">0.00 sBTC</div>
+            <div class="stat-change" id="statEarnedChange">--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Agents</div>
+            <div class="stat-value" id="statAgents">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg APY</div>
+            <div class="stat-value orange" id="statAPY">--%</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Active Positions</h3>
+              <button class="btn btn-sm btn-secondary" onclick="showView('agents')">View All</button>
+            </div>
+            <div id="dashboardPositions">
+              <div class="empty-state">
+                <h3>No active positions</h3>
+                <p>Deploy an agent to start hunting yields</p>
+                <button class="btn btn-primary" onclick="openDeployModal()">Deploy Agent</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Activity</h3>
+            </div>
+            <div id="dashboardActivity">
+              <div class="empty-state">
+                <p>No recent activity</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <h1>Autonomous agents that hunt <span>Bitcoin yields</span></h1>
-      <p class="lead">AI-powered yield optimization on Stacks. On-chain logic, verifiable decisions, sBTC-native returns.</p>
-      <div class="hero-buttons">
-        <a href="#waitlist" class="btn btn-primary">Join Waitlist</a>
-        <a href="https://github.com/aibtcdev/yield-hunter" target="_blank" class="btn btn-secondary">View Source</a>
+
+      <!-- Deposit -->
+      <div id="view-deposit" class="view">
+        <div class="grid-2">
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 20px;">Deposit BTC</h3>
+            <p style="color: var(--text-muted); margin-bottom: 24px;">
+              Convert native BTC to sBTC via the Styx bridge. sBTC is required to fund yield hunters.
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Amount (BTC)</label>
+              <div class="input-group">
+                <input type="number" class="form-input mono" id="depositAmount" placeholder="0.001" step="0.0001" min="0.0001">
+                <button class="btn btn-secondary" onclick="setMaxDeposit()">Max</button>
+              </div>
+              <div class="form-hint">Min: 0.0001 BTC (~$10) | Max: 0.1 BTC (~$10,000)</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">You will receive</label>
+              <div class="form-input mono" style="background: var(--bg-subtle);" id="depositReceive">0.00000000 sBTC</div>
+              <div class="form-hint">1:1 conversion minus network fees</div>
+            </div>
+
+            <button class="btn btn-primary btn-lg" style="width: 100%;" onclick="initiateDeposit()" id="depositBtn">
+              Connect Wallet to Deposit
+            </button>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title" style="margin-bottom: 20px;">Your Balances</h3>
+
+            <div style="padding: 20px; background: var(--bg-subtle); border-radius: var(--radius); margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 13px; color: var(--text-dim);">sBTC Balance</div>
+                  <div style="font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace;" id="balanceSbtc">--</div>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="refreshBalances()">Refresh</button>
+              </div>
+            </div>
+
+            <div style="padding: 20px; background: var(--bg-subtle); border-radius: var(--radius);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <div style="font-size: 13px; color: var(--text-dim);">STX Balance</div>
+                  <div style="font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace;" id="balanceStx">--</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert alert-warning" style="margin-top: 20px;">
+              You need STX for transaction fees. Get STX from an exchange or faucet.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Agents -->
+      <div id="view-agents" class="view">
+        <div class="card-header" style="margin-bottom: 20px;">
+          <h2 style="font-size: 24px; font-weight: 700;">My Agents</h2>
+          <button class="btn btn-primary" onclick="openDeployModal()">Deploy New Agent</button>
+        </div>
+
+        <div id="agentsList">
+          <div class="empty-state">
+            <h3>No agents deployed</h3>
+            <p>Deploy your first yield hunter to start earning</p>
+            <button class="btn btn-primary" onclick="openDeployModal()">Deploy Agent</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div id="view-leaderboard" class="view">
+        <div class="card-header" style="margin-bottom: 20px;">
+          <h2 style="font-size: 24px; font-weight: 700;">Leaderboard</h2>
+          <div class="tabs" style="margin-bottom: 0; width: auto;">
+            <button class="tab active">All Time</button>
+            <button class="tab">30 Days</button>
+            <button class="tab">7 Days</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Agent</th>
+                <th>Total Earned</th>
+                <th>Win Rate</th>
+                <th class="hide-mobile">Best APY</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                  <span class="loading"></span> Loading leaderboard...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </section>
+  </main>
 
-  <section class="stats">
-    <div class="container">
-      <div class="stats-grid">
-        <div>
-          <div class="stat-value">12</div>
-          <div class="stat-label">Smart Contracts</div>
+  <!-- Deploy Agent Modal -->
+  <div class="modal-overlay" id="deployModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Deploy Yield Hunter</h3>
+        <button class="modal-close" onclick="closeDeployModal()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Agent Name</label>
+          <input type="text" class="form-input" id="agentName" placeholder="My Yield Hunter" maxlength="32">
+          <div class="form-hint">Choose a unique name for your agent</div>
         </div>
-        <div>
-          <div class="stat-value">5</div>
-          <div class="stat-label">Protocol Adapters</div>
+
+        <div class="form-group">
+          <label class="form-label">Initial Funding (sBTC)</label>
+          <input type="number" class="form-input mono" id="agentFunding" placeholder="0.01" step="0.001" min="0.001">
+          <div class="form-hint">Minimum: 0.001 sBTC. This funds the agent's operations.</div>
         </div>
-        <div>
-          <div class="stat-value orange">27</div>
-          <div class="stat-label">Unit Tests</div>
+
+        <div class="form-group">
+          <label class="form-label">Risk Tolerance</label>
+          <select class="form-input" id="agentRisk">
+            <option value="low">Conservative (Low Risk, Lower APY)</option>
+            <option value="medium" selected>Balanced (Medium Risk)</option>
+            <option value="high">Aggressive (High Risk, Higher APY)</option>
+          </select>
         </div>
-        <div>
-          <div class="stat-value">100%</div>
-          <div class="stat-label">Open Source</div>
+
+        <div class="alert alert-warning">
+          Deploying an agent costs 10,000 sats (0.0001 sBTC) plus network fees.
         </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDeployModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="deployAgent()" id="deployAgentBtn">Deploy Agent</button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <section class="section" id="how">
-    <div class="container">
-      <div class="section-header">
-        <h2>How it works</h2>
-        <p>From deployment to compounding yields</p>
+  <!-- Risk Modal -->
+  <div class="modal-overlay" id="riskModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: var(--red);">Risk Disclosure</h3>
+        <button class="modal-close" onclick="closeRiskModal()">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div>
-            <h3>Deploy Agent</h3>
-            <p>Mint your agent identity and fund it with sBTC through the Styx bridge</p>
-          </div>
+      <div class="modal-body">
+        <div style="font-size: 14px; color: var(--text-muted); line-height: 1.7;">
+          <p style="margin-bottom: 16px;"><strong style="color: var(--text);">Loss of Funds:</strong> AI agents can and do lose funds. Past performance does not predict future results. You may lose all invested sBTC.</p>
+          <p style="margin-bottom: 16px;"><strong style="color: var(--text);">Smart Contract Risk:</strong> Despite testing, contracts may contain bugs that could result in loss of funds.</p>
+          <p style="margin-bottom: 16px;"><strong style="color: var(--text);">Protocol Risk:</strong> Third-party DeFi protocols may be exploited, hacked, or rug-pulled.</p>
+          <p style="margin-bottom: 16px;"><strong style="color: var(--text);">Impermanent Loss:</strong> LP positions are subject to impermanent loss when token prices diverge.</p>
+          <p><strong style="color: var(--text);">This is experimental software.</strong> Do not invest more than you can afford to lose completely.</p>
         </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div>
-            <h3>Scan Protocols</h3>
-            <p>Agent queries Bitflow, Alex, Zest, and other DeFi protocols for yield opportunities</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div>
-            <h3>Evaluate Risk</h3>
-            <p>Monte Carlo simulations assess liquidity, volume, and concentration risk</p>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div>
-            <h3>Execute & Compound</h3>
-            <p>Deploy capital to approved pools, harvest yields, auto-compound returns</p>
-          </div>
-        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeRiskModal()">I Understand</button>
       </div>
     </div>
-  </section>
-
-  <section class="section" style="background: var(--bg-subtle); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
-    <div class="container">
-      <div class="section-header">
-        <h2>Built for trust</h2>
-        <p>Every decision auditable on-chain</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-            </svg>
-          </div>
-          <h3>Clarity Smart Contracts</h3>
-          <p>All agent logic lives in auditable Clarity code. No hidden behavior, no black boxes.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-          </div>
-          <h3>Risk Scoring Engine</h3>
-          <p>Weighted analysis of liquidity, volume, holder concentration, and pool age before any position.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-            </svg>
-          </div>
-          <h3>Post-Condition Security</h3>
-          <p>Explicit token transfer limits on every transaction. Contracts cannot move funds arbitrarily.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-            </svg>
-          </div>
-          <h3>Styx Bridge Integration</h3>
-          <p>Native BTC to sBTC conversion. No wrapped tokens, no custodians, no counterparty risk.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-            </svg>
-          </div>
-          <h3>Governance Controls</h3>
-          <p>Admin-only pool approvals. You control which protocols your agent can interact with.</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">
-            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-            </svg>
-          </div>
-          <h3>Open Source</h3>
-          <p>MIT licensed. Fork it, audit it, improve it. Every line of code is public.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" id="architecture">
-    <div class="container">
-      <div class="section-header">
-        <h2>Architecture</h2>
-        <p>Modular design for extensibility and security</p>
-      </div>
-      <div class="arch-card">
-        <div class="arch-code">
-<span class="comment">// Contract Architecture</span>
-
-<span class="highlight">yield-hunter.clar</span>          <span class="comment">Core agent logic, position management</span>
-<span class="highlight">yield-hunter-adapter.clar</span>   <span class="comment">Bitflow XYK swap integration</span>
-<span class="highlight">yield-hunter-oracle.clar</span>    <span class="comment">Risk scoring, Pyth price feeds</span>
-<span class="highlight">agent-lifecycle.clar</span>        <span class="comment">Birth, feed, evolve, death mechanics</span>
-
-<span class="comment">// Protocol Adapters</span>
-<span class="green">bitflow-adapter.clar</span>        <span class="comment">Bitflow AMM pools</span>
-<span class="green">alex-adapter.clar</span>           <span class="comment">ALEX DEX integration</span>
-<span class="green">zest-adapter.clar</span>           <span class="comment">Zest lending protocol</span>
-<span class="green">hermetica-adapter.clar</span>      <span class="comment">Hermetica basis vaults</span>
-<span class="green">arkadiko-adapter.clar</span>       <span class="comment">Arkadiko CDP + staking</span>
-
-<span class="comment">// TypeScript Engine</span>
-src/yield-hunter/
-  scanning/       <span class="comment">Pool discovery via Tenero API</span>
-  engine/         <span class="comment">Monte Carlo risk simulations</span>
-  execution/      <span class="comment">Contract interaction layer</span>
-  wallet/         <span class="comment">Styx bridge, Xverse/Leather connect</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="waitlist" id="waitlist">
-    <div class="container">
-      <div class="waitlist-card">
-        <h2>Get early access</h2>
-        <p>Be first to deploy a yield hunter when we launch on testnet.</p>
-        <form class="waitlist-form" action="https://aibtc.dev/waitlist" method="POST">
-          <input type="email" name="email" placeholder="you@example.com" required>
-          <button type="submit" class="btn btn-primary">Join Waitlist</button>
-        </form>
-      </div>
-    </div>
-  </section>
-
-  <section class="risks" id="risks">
-    <div class="container">
-      <div class="risks-card">
-        <h3>Risk Disclosure</h3>
-        <ul>
-          <li><strong>Loss of funds is possible.</strong> AI agents can make poor decisions. Past performance does not predict future results.</li>
-          <li><strong>Smart contract risk.</strong> Despite testing, contracts may contain bugs that could result in loss of funds.</li>
-          <li><strong>Protocol risk.</strong> Third-party DeFi protocols may be exploited, hacked, or rug-pulled.</li>
-          <li><strong>This is experimental software.</strong> Do not invest more than you can afford to lose completely.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="container footer-inner">
-      <div class="footer-links">
-        <a href="https://aibtc.dev" target="_blank">AIBTC</a>
-        <a href="https://stacks.co" target="_blank">Stacks</a>
-        <a href="https://github.com/aibtcdev" target="_blank">GitHub</a>
-        <a href="#risks">Risks</a>
-      </div>
-      <div class="footer-copy">Built on Bitcoin</div>
-    </div>
-  </footer>
+  </div>
 
   <script>
-    function toggleMenu() {
-      document.getElementById('mobileMenu').classList.toggle('open');
+    // App State
+    const state = {
+      connected: false,
+      address: null,
+      network: 'mainnet',
+      balances: { sbtc: 0, stx: 0 },
+      agents: [],
+      positions: []
+    };
+
+    // Stacks Config
+    const appDetails = {
+      name: 'Yield Hunter',
+      icon: 'https://yield-hunter.p-d07.workers.dev/icon.png'
+    };
+
+    // Network config
+    const NETWORK = new StacksNetwork.StacksMainnet();
+    const API_BASE = 'https://api.hiro.so';
+
+    // Contract addresses (mainnet)
+    const CONTRACTS = {
+      yieldHunter: 'SP2J6Y09JMFWWZCT4JYR2XGPQ5WG0YKNEX6YRXGR.yield-hunter',
+      sbtcToken: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+      oracle: 'SP2J6Y09JMFWWZCT4JYR2XGPQ5WG0YKNEX6YRXGR.yield-hunter-oracle'
+    };
+
+    // Connect Wallet
+    async function connectWallet() {
+      try {
+        const response = await StacksConnect.showConnect({
+          appDetails,
+          onFinish: (data) => {
+            state.connected = true;
+            state.address = data.userSession.loadUserData().profile.stxAddress.mainnet;
+            onConnect();
+          },
+          onCancel: () => {
+            console.log('User cancelled');
+          },
+          userSession: new StacksConnect.UserSession()
+        });
+      } catch (err) {
+        console.error('Connect error:', err);
+        alert('Failed to connect wallet. Make sure you have Leather or Xverse installed.');
+      }
     }
+
+    // On successful connection
+    function onConnect() {
+      document.getElementById('notConnected').style.display = 'none';
+      document.getElementById('connectedViews').style.display = 'block';
+
+      const btn = document.getElementById('walletBtn');
+      btn.className = 'wallet-btn connected';
+      btn.innerHTML = '<span class="wallet-dot"></span>' + truncateAddress(state.address);
+      btn.onclick = disconnectWallet;
+
+      document.getElementById('depositBtn').textContent = 'Deposit BTC';
+
+      refreshBalances();
+      loadAgents();
+      loadLeaderboard();
+    }
+
+    // Disconnect
+    function disconnectWallet() {
+      state.connected = false;
+      state.address = null;
+
+      document.getElementById('notConnected').style.display = 'block';
+      document.getElementById('connectedViews').style.display = 'none';
+
+      const btn = document.getElementById('walletBtn');
+      btn.className = 'wallet-btn connect';
+      btn.innerHTML = 'Connect Wallet';
+      btn.onclick = connectWallet;
+    }
+
+    // Fetch balances
+    async function refreshBalances() {
+      if (!state.address) return;
+
+      try {
+        // Fetch STX balance
+        const stxRes = await fetch(API_BASE + '/extended/v1/address/' + state.address + '/balances');
+        const stxData = await stxRes.json();
+
+        state.balances.stx = parseInt(stxData.stx.balance) / 1000000;
+        document.getElementById('balanceStx').textContent = state.balances.stx.toFixed(2) + ' STX';
+
+        // Fetch sBTC balance (fungible token)
+        const sbtcBalance = stxData.fungible_tokens['SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc'];
+        if (sbtcBalance) {
+          state.balances.sbtc = parseInt(sbtcBalance.balance) / 100000000;
+        }
+        document.getElementById('balanceSbtc').textContent = state.balances.sbtc.toFixed(8) + ' sBTC';
+
+        // Update dashboard
+        document.getElementById('statPortfolio').textContent = state.balances.sbtc.toFixed(4) + ' sBTC';
+      } catch (err) {
+        console.error('Balance fetch error:', err);
+      }
+    }
+
+    // Load user's agents
+    async function loadAgents() {
+      // In production, this would query the contract
+      // For now, show empty state
+      const container = document.getElementById('agentsList');
+
+      // Simulated check - replace with actual contract call
+      if (state.agents.length === 0) {
+        container.innerHTML = \`
+          <div class="empty-state">
+            <h3>No agents deployed</h3>
+            <p>Deploy your first yield hunter to start earning</p>
+            <button class="btn btn-primary" onclick="openDeployModal()">Deploy Agent</button>
+          </div>
+        \`;
+      }
+    }
+
+    // Load leaderboard from contract
+    async function loadLeaderboard() {
+      const tbody = document.getElementById('leaderboardBody');
+
+      try {
+        // In production, query the oracle contract for leaderboard data
+        // For now, show that we're fetching real data
+        const response = await fetch(API_BASE + '/extended/v1/contract/' + CONTRACTS.oracle.replace('.', '/') + '/read-only/get-top-hunters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender: state.address || 'SP000000000000000000002Q6VF78',
+            arguments: ['0x0000000000000000000000000000000a'] // u10
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Contract not deployed yet');
+        }
+
+        const data = await response.json();
+        // Parse and display results
+
+      } catch (err) {
+        // Contract not deployed yet - show placeholder
+        tbody.innerHTML = \`
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              Leaderboard data will appear once agents are deployed on mainnet.
+            </td>
+          </tr>
+        \`;
+      }
+    }
+
+    // Deposit flow
+    async function initiateDeposit() {
+      if (!state.connected) {
+        connectWallet();
+        return;
+      }
+
+      const amount = parseFloat(document.getElementById('depositAmount').value);
+      if (!amount || amount < 0.0001 || amount > 0.1) {
+        alert('Please enter a valid amount between 0.0001 and 0.1 BTC');
+        return;
+      }
+
+      // In production, this would initiate Styx bridge deposit
+      // For now, show instructions
+      alert('Styx bridge integration coming soon. For now, acquire sBTC via supported exchanges.');
+    }
+
+    // Update receive amount
+    document.getElementById('depositAmount')?.addEventListener('input', (e) => {
+      const amount = parseFloat(e.target.value) || 0;
+      const fee = 0.00001; // Estimated fee
+      const receive = Math.max(0, amount - fee);
+      document.getElementById('depositReceive').textContent = receive.toFixed(8) + ' sBTC';
+    });
+
+    // Deploy agent
+    async function deployAgent() {
+      if (!state.connected) {
+        alert('Please connect your wallet first');
+        return;
+      }
+
+      const name = document.getElementById('agentName').value.trim();
+      const funding = parseFloat(document.getElementById('agentFunding').value);
+      const risk = document.getElementById('agentRisk').value;
+
+      if (!name || name.length < 3) {
+        alert('Please enter a valid agent name (at least 3 characters)');
+        return;
+      }
+
+      if (!funding || funding < 0.001) {
+        alert('Please enter at least 0.001 sBTC for funding');
+        return;
+      }
+
+      const btn = document.getElementById('deployAgentBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="loading"></span> Deploying...';
+
+      try {
+        // Build the contract call transaction
+        const txOptions = {
+          contractAddress: CONTRACTS.yieldHunter.split('.')[0],
+          contractName: CONTRACTS.yieldHunter.split('.')[1],
+          functionName: 'initialize-hunter',
+          functionArgs: [
+            StacksTransactions.stringAsciiCV(name),
+            StacksTransactions.uintCV(Math.floor(funding * 100000000)),
+            StacksTransactions.uintCV(risk === 'low' ? 30 : risk === 'high' ? 70 : 50)
+          ],
+          network: NETWORK,
+          appDetails,
+          onFinish: (data) => {
+            alert('Agent deployment transaction submitted! TX: ' + data.txId);
+            closeDeployModal();
+            loadAgents();
+          },
+          onCancel: () => {
+            console.log('User cancelled');
+          }
+        };
+
+        await StacksConnect.openContractCall(txOptions);
+      } catch (err) {
+        console.error('Deploy error:', err);
+        alert('Failed to deploy agent: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Deploy Agent';
+      }
+    }
+
+    // View switching
+    function showView(viewId) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+
+      document.getElementById('view-' + viewId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Modals
+    function openDeployModal() {
+      document.getElementById('deployModal').classList.add('open');
+    }
+    function closeDeployModal() {
+      document.getElementById('deployModal').classList.remove('open');
+    }
+    function showRisks() {
+      document.getElementById('riskModal').classList.add('open');
+    }
+    function closeRiskModal() {
+      document.getElementById('riskModal').classList.remove('open');
+    }
+
+    // Helpers
+    function truncateAddress(addr) {
+      if (!addr) return '';
+      return addr.slice(0, 6) + '...' + addr.slice(-4);
+    }
+
+    function setMaxDeposit() {
+      document.getElementById('depositAmount').value = '0.1';
+      document.getElementById('depositAmount').dispatchEvent(new Event('input'));
+    }
+
+    // Check if already connected on load
+    window.addEventListener('load', () => {
+      // Check for existing session
+      const userSession = new StacksConnect.UserSession();
+      if (userSession.isUserSignedIn()) {
+        const userData = userSession.loadUserData();
+        state.connected = true;
+        state.address = userData.profile.stxAddress.mainnet;
+        onConnect();
+      }
+    });
   </script>
 </body>
 </html>`;
 
 export default {
   async fetch(request) {
+    const url = new URL(request.url);
+
+    // API routes for backend functionality
+    if (url.pathname.startsWith('/api/')) {
+      return handleAPI(request, url);
+    }
+
     return new Response(html, {
       headers: {
         "Content-Type": "text/html;charset=UTF-8",
-        "Cache-Control": "public, max-age=3600"
+        "Cache-Control": "no-cache"
       },
     });
   },
 };
+
+// API handler
+async function handleAPI(request, url) {
+  const path = url.pathname.replace('/api/', '');
+
+  const headers = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*"
+  };
+
+  // GET /api/leaderboard
+  if (path === 'leaderboard' && request.method === 'GET') {
+    // Query Stacks API for contract data
+    try {
+      const response = await fetch('https://api.hiro.so/extended/v1/contract/SP2J6Y09JMFWWZCT4JYR2XGPQ5WG0YKNEX6YRXGR.yield-hunter-oracle/read-only/get-leaderboard-stats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: 'SP000000000000000000002Q6VF78',
+          arguments: []
+        })
+      });
+
+      const data = await response.json();
+      return new Response(JSON.stringify(data), { headers });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: 'Contract not deployed' }), { headers, status: 503 });
+    }
+  }
+
+  // GET /api/agent/:address
+  if (path.startsWith('agent/') && request.method === 'GET') {
+    const address = path.replace('agent/', '');
+    // Query agent data from contract
+    return new Response(JSON.stringify({ address, agents: [] }), { headers });
+  }
+
+  return new Response(JSON.stringify({ error: 'Not found' }), { headers, status: 404 });
+}
