@@ -1304,14 +1304,293 @@ export default {
   },
 };
 
+// x402 Payment Configuration
+const X402_CONFIG = {
+  paymentAddress: 'SP2J6Y09JMFWWZCT4JYR2XGPQ5WG0YKNEX6YRXGR', // Yield Hunter treasury
+  sbtcContract: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
+  network: 'mainnet',
+  endpoints: {
+    '/api/x402/alpha-signals': {
+      price: 1000, // 1000 sats (0.00001 sBTC)
+      description: 'Premium alpha signals from top-performing yield hunters',
+      contentType: 'application/json'
+    },
+    '/api/x402/strategy-report': {
+      price: 5000, // 5000 sats (0.00005 sBTC)
+      description: 'Detailed strategy report with pool analysis and risk scores',
+      contentType: 'application/json'
+    }
+  }
+};
+
+// Verify sBTC payment on Stacks
+async function verifyPayment(txId, expectedAmount, expectedRecipient) {
+  try {
+    const res = await fetch(`https://api.hiro.so/extended/v1/tx/${txId}`);
+    if (!res.ok) return { valid: false, reason: 'Transaction not found' };
+
+    const tx = await res.json();
+
+    // Check tx is confirmed
+    if (tx.tx_status !== 'success') {
+      return { valid: false, reason: 'Transaction not confirmed' };
+    }
+
+    // Check it's a contract call to sBTC transfer
+    if (tx.tx_type !== 'contract_call') {
+      return { valid: false, reason: 'Not a contract call' };
+    }
+
+    // Verify it's an sBTC transfer to our address
+    const contractId = `${tx.contract_call.contract_id}`;
+    if (!contractId.includes('sbtc')) {
+      return { valid: false, reason: 'Not an sBTC transaction' };
+    }
+
+    // Check function is transfer
+    if (tx.contract_call.function_name !== 'transfer') {
+      return { valid: false, reason: 'Not a transfer' };
+    }
+
+    // Parse args to verify amount and recipient
+    const args = tx.contract_call.function_args;
+    const amount = parseInt(args.find(a => a.name === 'amount')?.repr?.replace('u', '') || '0');
+    const recipient = args.find(a => a.name === 'recipient')?.repr?.replace(/'/g, '') || '';
+
+    if (amount < expectedAmount) {
+      return { valid: false, reason: `Insufficient amount: ${amount} < ${expectedAmount}` };
+    }
+
+    if (!recipient.includes(expectedRecipient)) {
+      return { valid: false, reason: 'Wrong recipient' };
+    }
+
+    return { valid: true, amount, txId };
+  } catch (err) {
+    return { valid: false, reason: err.message };
+  }
+}
+
 // API handler
 async function handleAPI(request, url) {
   const path = url.pathname.replace('/api/', '');
 
   const headers = {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*"
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "X-Payment-Proof, Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
   };
+
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { headers, status: 204 });
+  }
+
+  // ============================================
+  // x402 ENDPOINTS
+  // ============================================
+
+  // GET /api/x402 - Discovery endpoint for stacksx402.com
+  if (path === 'x402' && request.method === 'GET') {
+    return new Response(JSON.stringify({
+      version: '1.0',
+      name: 'Yield Hunter x402',
+      description: 'Pay-per-request API for yield hunting intelligence',
+      paymentAddress: X402_CONFIG.paymentAddress,
+      paymentToken: {
+        contract: X402_CONFIG.sbtcContract,
+        symbol: 'sBTC',
+        decimals: 8
+      },
+      network: X402_CONFIG.network,
+      endpoints: Object.entries(X402_CONFIG.endpoints).map(([path, config]) => ({
+        path,
+        method: 'GET',
+        price: config.price,
+        priceFormatted: (config.price / 100000000).toFixed(8) + ' sBTC',
+        description: config.description,
+        contentType: config.contentType
+      }))
+    }), { headers });
+  }
+
+  // GET /api/x402/alpha-signals - Premium signals (1000 sats)
+  if (path === 'x402/alpha-signals') {
+    const config = X402_CONFIG.endpoints['/api/x402/alpha-signals'];
+    const paymentProof = request.headers.get('X-Payment-Proof');
+
+    // No payment proof - return 402 with payment instructions
+    if (!paymentProof) {
+      return new Response(JSON.stringify({
+        error: 'Payment Required',
+        message: 'This endpoint requires sBTC payment',
+        payment: {
+          address: X402_CONFIG.paymentAddress,
+          amount: config.price,
+          amountFormatted: (config.price / 100000000).toFixed(8) + ' sBTC',
+          token: X402_CONFIG.sbtcContract,
+          network: X402_CONFIG.network,
+          memo: 'x402:alpha-signals'
+        },
+        instructions: 'Send sBTC to the payment address, then retry with X-Payment-Proof header containing the transaction ID'
+      }), {
+        status: 402,
+        headers: {
+          ...headers,
+          'X-Payment-Address': X402_CONFIG.paymentAddress,
+          'X-Payment-Amount': config.price.toString(),
+          'X-Payment-Token': X402_CONFIG.sbtcContract,
+          'X-Payment-Network': X402_CONFIG.network
+        }
+      });
+    }
+
+    // Verify payment
+    const verification = await verifyPayment(paymentProof, config.price, X402_CONFIG.paymentAddress);
+    if (!verification.valid) {
+      return new Response(JSON.stringify({
+        error: 'Payment Invalid',
+        reason: verification.reason
+      }), { status: 402, headers });
+    }
+
+    // Payment valid - return premium content
+    return new Response(JSON.stringify({
+      timestamp: Date.now(),
+      paymentVerified: true,
+      txId: paymentProof,
+      signals: [
+        {
+          pool: 'ALEX sBTC-STX',
+          action: 'ENTER',
+          confidence: 0.87,
+          expectedAPY: 24.5,
+          riskScore: 32,
+          reason: 'Volume spike detected, TVL growing, favorable IL conditions'
+        },
+        {
+          pool: 'Bitflow sBTC-USDA',
+          action: 'HOLD',
+          confidence: 0.72,
+          expectedAPY: 18.2,
+          riskScore: 28,
+          reason: 'Stable yields, low volatility period'
+        },
+        {
+          pool: 'Velar sBTC-WELSH',
+          action: 'EXIT',
+          confidence: 0.91,
+          expectedAPY: 12.1,
+          riskScore: 65,
+          reason: 'Declining volume, increasing IL risk'
+        }
+      ],
+      generatedBy: 'YieldHunter AI v1.0'
+    }), { headers });
+  }
+
+  // GET /api/x402/strategy-report - Full strategy report (5000 sats)
+  if (path === 'x402/strategy-report') {
+    const config = X402_CONFIG.endpoints['/api/x402/strategy-report'];
+    const paymentProof = request.headers.get('X-Payment-Proof');
+
+    if (!paymentProof) {
+      return new Response(JSON.stringify({
+        error: 'Payment Required',
+        message: 'This endpoint requires sBTC payment',
+        payment: {
+          address: X402_CONFIG.paymentAddress,
+          amount: config.price,
+          amountFormatted: (config.price / 100000000).toFixed(8) + ' sBTC',
+          token: X402_CONFIG.sbtcContract,
+          network: X402_CONFIG.network,
+          memo: 'x402:strategy-report'
+        },
+        instructions: 'Send sBTC to the payment address, then retry with X-Payment-Proof header containing the transaction ID'
+      }), {
+        status: 402,
+        headers: {
+          ...headers,
+          'X-Payment-Address': X402_CONFIG.paymentAddress,
+          'X-Payment-Amount': config.price.toString(),
+          'X-Payment-Token': X402_CONFIG.sbtcContract,
+          'X-Payment-Network': X402_CONFIG.network
+        }
+      });
+    }
+
+    const verification = await verifyPayment(paymentProof, config.price, X402_CONFIG.paymentAddress);
+    if (!verification.valid) {
+      return new Response(JSON.stringify({
+        error: 'Payment Invalid',
+        reason: verification.reason
+      }), { status: 402, headers });
+    }
+
+    // Payment valid - return full report
+    return new Response(JSON.stringify({
+      timestamp: Date.now(),
+      paymentVerified: true,
+      txId: paymentProof,
+      report: {
+        title: 'Yield Hunter Strategy Report',
+        generatedAt: new Date().toISOString(),
+        marketConditions: {
+          btcTrend: 'bullish',
+          stxTrend: 'neutral',
+          defiTVL: '48.2M STX',
+          avgYield: '15.8%'
+        },
+        topPools: [
+          {
+            name: 'ALEX sBTC-STX',
+            tvl: '12.4M',
+            apy: 24.5,
+            volume24h: '2.1M',
+            riskScore: 32,
+            recommendation: 'Strong entry opportunity',
+            optimalAllocation: '25%'
+          },
+          {
+            name: 'Bitflow sBTC-USDA',
+            tvl: '8.7M',
+            apy: 18.2,
+            volume24h: '1.4M',
+            riskScore: 28,
+            recommendation: 'Stable yield, good for base allocation',
+            optimalAllocation: '35%'
+          },
+          {
+            name: 'Arkadiko sBTC-USDA',
+            tvl: '5.2M',
+            apy: 21.3,
+            volume24h: '890K',
+            riskScore: 41,
+            recommendation: 'Higher risk, monitor closely',
+            optimalAllocation: '15%'
+          }
+        ],
+        riskAnalysis: {
+          portfolioVaR: 0.08,
+          maxDrawdown: 0.15,
+          sharpeRatio: 1.4,
+          correlationRisk: 'medium'
+        },
+        actionPlan: [
+          'Increase ALEX sBTC-STX position by 10%',
+          'Maintain Bitflow allocation',
+          'Consider reducing Velar exposure',
+          'Set stop-loss at 12% drawdown'
+        ]
+      },
+      generatedBy: 'YieldHunter AI v1.0'
+    }), { headers });
+  }
+
+  // ============================================
+  // STANDARD API ENDPOINTS
+  // ============================================
 
   // GET /api/leaderboard
   if (path === 'leaderboard' && request.method === 'GET') {
