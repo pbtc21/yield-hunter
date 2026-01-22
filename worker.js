@@ -130,6 +130,51 @@ const html = `<!DOCTYPE html>
       border-radius: 50%;
     }
 
+    /* Mobile hamburger */
+    .hamburger {
+      display: none;
+      width: 44px;
+      height: 44px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 10px;
+      margin-right: 8px;
+    }
+    .hamburger svg { color: var(--text); }
+    .hamburger:hover { background: var(--bg-card); border-radius: var(--radius); }
+
+    /* Mobile menu */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      z-index: 99;
+    }
+    .mobile-menu.open { display: block; }
+    .mobile-menu-item {
+      display: block;
+      width: 100%;
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .mobile-menu-item:hover, .mobile-menu-item.active {
+      background: var(--bg);
+      color: var(--text);
+    }
+
     /* Main content */
     main { padding: 24px 0; }
     .view { display: none; }
@@ -380,9 +425,15 @@ const html = `<!DOCTYPE html>
       border: none;
       color: var(--text-muted);
       cursor: pointer;
-      padding: 4px;
+      padding: 10px;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius);
     }
-    .modal-close:hover { color: var(--text); }
+    .modal-close:hover { color: var(--text); background: var(--bg); }
     .modal-body { padding: 24px; }
     .modal-footer {
       padding: 16px 24px;
@@ -461,10 +512,24 @@ const html = `<!DOCTYPE html>
     /* Responsive */
     @media (max-width: 768px) {
       .nav-tabs { display: none; }
+      .hamburger { display: flex; align-items: center; justify-content: center; }
       .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
       .position-stats { grid-template-columns: repeat(2, 1fr); }
-      th, td { padding: 10px 12px; }
+      th, td { padding: 12px 14px; font-size: 13px; }
       .hide-mobile { display: none; }
+      .btn { min-height: 48px; padding: 14px 20px; }
+      .btn-sm { min-height: 44px; padding: 12px 16px; }
+      .wallet-btn { min-height: 44px; padding: 12px 16px; }
+      .nav-tab { min-height: 44px; }
+      .form-input { min-height: 48px; font-size: 16px; }
+      .modal { max-width: 95vw; margin: 10px; }
+      .modal-body { padding: 20px; }
+      .stat-value { font-size: 22px; }
+      .card { padding: 16px; }
+      .agent-addr { word-break: break-all; }
+      .container { padding: 0 12px; }
+      .connect-prompt { padding: 40px 16px; }
+      .connect-prompt h2 { font-size: 20px; }
     }
 
     /* Connect prompt */
@@ -503,23 +568,37 @@ const html = `<!DOCTYPE html>
 
   <nav>
     <div class="nav-inner">
-      <a href="/" class="logo">
-        <span class="logo-mark">YH</span>
-        Yield Hunter
-      </a>
+      <div style="display: flex; align-items: center;">
+        <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+        </button>
+        <a href="/" class="logo">
+          <span class="logo-mark">YH</span>
+          <span class="hide-mobile">Yield Hunter</span>
+        </a>
+      </div>
       <div class="nav-tabs">
-        <button class="nav-tab active" onclick="showView('dashboard')">Dashboard</button>
-        <button class="nav-tab" onclick="showView('deposit')">Deposit</button>
-        <button class="nav-tab" onclick="showView('agents')">My Agents</button>
-        <button class="nav-tab" onclick="showView('leaderboard')">Leaderboard</button>
+        <button class="nav-tab active" data-view="dashboard" onclick="showView('dashboard')">Dashboard</button>
+        <button class="nav-tab" data-view="deposit" onclick="showView('deposit')">Deposit</button>
+        <button class="nav-tab" data-view="agents" onclick="showView('agents')">My Agents</button>
+        <button class="nav-tab" data-view="leaderboard" onclick="showView('leaderboard')">Leaderboard</button>
       </div>
       <div class="nav-right">
         <button class="wallet-btn connect" id="walletBtn" onclick="connectWallet()">
-          Connect Wallet
+          Connect
         </button>
       </div>
     </div>
   </nav>
+
+  <div class="mobile-menu" id="mobileMenu">
+    <button class="mobile-menu-item active" data-view="dashboard" onclick="showViewMobile('dashboard')">Dashboard</button>
+    <button class="mobile-menu-item" data-view="deposit" onclick="showViewMobile('deposit')">Deposit</button>
+    <button class="mobile-menu-item" data-view="agents" onclick="showViewMobile('agents')">My Agents</button>
+    <button class="mobile-menu-item" data-view="leaderboard" onclick="showViewMobile('leaderboard')">Leaderboard</button>
+  </div>
 
   <main class="container">
     <!-- Not connected state -->
@@ -1014,9 +1093,25 @@ const html = `<!DOCTYPE html>
     function showView(viewId) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.mobile-menu-item').forEach(t => t.classList.remove('active'));
 
       document.getElementById('view-' + viewId).classList.add('active');
-      event.target.classList.add('active');
+      document.querySelector('.nav-tab[data-view="' + viewId + '"]')?.classList.add('active');
+      document.querySelector('.mobile-menu-item[data-view="' + viewId + '"]')?.classList.add('active');
+    }
+
+    // Mobile view switching
+    function showViewMobile(viewId) {
+      showView(viewId);
+      closeMobileMenu();
+    }
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      document.getElementById('mobileMenu').classList.toggle('open');
+    }
+    function closeMobileMenu() {
+      document.getElementById('mobileMenu').classList.remove('open');
     }
 
     // Modals
@@ -1053,6 +1148,15 @@ const html = `<!DOCTYPE html>
         state.connected = true;
         state.address = userData.profile.stxAddress.mainnet;
         onConnect();
+      }
+    });
+
+    // Close mobile menu on outside click
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('mobileMenu');
+      const hamburger = document.querySelector('.hamburger');
+      if (menu.classList.contains('open') && !menu.contains(e.target) && !hamburger.contains(e.target)) {
+        closeMobileMenu();
       }
     });
   </script>
