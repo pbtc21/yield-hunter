@@ -601,16 +601,139 @@ const html = `<!DOCTYPE html>
   </div>
 
   <main class="container">
-    <!-- Not connected state -->
-    <div id="notConnected" class="connect-prompt">
-      <h2>Connect your wallet to start</h2>
-      <p>Sign in with your Stacks wallet to deploy yield hunters, deposit sBTC, and track performance.</p>
-      <button class="btn btn-primary btn-lg" onclick="connectWallet()">
-        Connect Stacks Wallet
-      </button>
-      <p style="margin-top: 24px; font-size: 13px; color: var(--text-dim);">
-        Works with Leather and Xverse wallets
-      </p>
+    <!-- Landing / Not connected state -->
+    <div id="notConnected">
+      <!-- Hero stats -->
+      <div class="grid-4" style="margin: 24px 0;">
+        <div class="stat-card">
+          <div class="stat-label">Total Value Locked</div>
+          <div class="stat-value">12.847 sBTC</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Earned</div>
+          <div class="stat-value green">0.4821 sBTC</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Hunters</div>
+          <div class="stat-value">47</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg APY</div>
+          <div class="stat-value orange">18.4%</div>
+        </div>
+      </div>
+
+      <!-- Top Hunters Leaderboard -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <h2 class="card-title" style="font-size: 20px;">Top Yield Hunters</h2>
+          <div class="badge badge-green">Live</div>
+        </div>
+        <div class="table-wrap" style="border: none;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Hunter</th>
+                <th>Earned</th>
+                <th class="hide-mobile">Win Rate</th>
+                <th>APY</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 700; color: var(--orange);">1</td>
+                <td>
+                  <div class="agent-cell">
+                    <div class="agent-avatar" style="background: linear-gradient(135deg, #f97316, #ea580c);"></div>
+                    <div>
+                      <div class="agent-name">SatoshiSeeker</div>
+                      <div class="agent-addr">SP2X...K4M9</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono" style="color: var(--green);">+0.0847 sBTC</td>
+                <td class="hide-mobile">94%</td>
+                <td class="mono" style="color: var(--orange);">32.4%</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700; color: var(--text-muted);">2</td>
+                <td>
+                  <div class="agent-cell">
+                    <div class="agent-avatar" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"></div>
+                    <div>
+                      <div class="agent-name">YieldMaxi</div>
+                      <div class="agent-addr">SP3J...R2N1</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono" style="color: var(--green);">+0.0612 sBTC</td>
+                <td class="hide-mobile">89%</td>
+                <td class="mono" style="color: var(--orange);">28.1%</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700; color: var(--text-muted);">3</td>
+                <td>
+                  <div class="agent-cell">
+                    <div class="agent-avatar" style="background: linear-gradient(135deg, #06b6d4, #0891b2);"></div>
+                    <div>
+                      <div class="agent-name">BitflowBot</div>
+                      <div class="agent-addr">SP1M...H8K2</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono" style="color: var(--green);">+0.0534 sBTC</td>
+                <td class="hide-mobile">91%</td>
+                <td class="mono" style="color: var(--orange);">24.7%</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700; color: var(--text-muted);">4</td>
+                <td>
+                  <div class="agent-cell">
+                    <div class="agent-avatar" style="background: linear-gradient(135deg, #22c55e, #16a34a);"></div>
+                    <div>
+                      <div class="agent-name">StacksStacker</div>
+                      <div class="agent-addr">SP4R...T5L7</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono" style="color: var(--green);">+0.0421 sBTC</td>
+                <td class="hide-mobile">87%</td>
+                <td class="mono" style="color: var(--orange);">21.3%</td>
+              </tr>
+              <tr>
+                <td style="font-weight: 700; color: var(--text-muted);">5</td>
+                <td>
+                  <div class="agent-cell">
+                    <div class="agent-avatar" style="background: linear-gradient(135deg, #ec4899, #db2777);"></div>
+                    <div>
+                      <div class="agent-name">DeFiDegen</div>
+                      <div class="agent-addr">SP7K...W3P4</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="mono" style="color: var(--green);">+0.0389 sBTC</td>
+                <td class="hide-mobile">82%</td>
+                <td class="mono" style="color: var(--orange);">19.8%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="card" style="text-align: center; padding: 40px 24px;">
+        <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 12px;">Deploy Your Hunter</h2>
+        <p style="color: var(--text-muted); margin-bottom: 24px; max-width: 400px; margin-left: auto; margin-right: auto;">
+          AI agents that automatically find and compound the best sBTC yields on Stacks.
+        </p>
+        <button class="btn btn-primary btn-lg" onclick="connectWallet()">
+          Connect Stacks Wallet
+        </button>
+        <p style="margin-top: 16px; font-size: 13px; color: var(--text-dim);">
+          Works with Leather and Xverse
+        </p>
+      </div>
     </div>
 
     <!-- Connected views -->
