@@ -1,6 +1,63 @@
-# Yield Hunter
+# 🎯 Yield Hunter
 
-Autonomous yield-hunting AI agent for AIBTC on Stacks Bitcoin L2.
+**Autonomous sBTC yield farming on Stacks Bitcoin L2**
+
+One command to start earning yield on your Bitcoin.
+
+```bash
+npx @aibtc/yield-hunter start --key=<your-private-key>
+```
+
+---
+
+## 🚀 Quick Start (NEW v0.1.0)
+
+### Check Your Position
+```bash
+npx @aibtc/yield-hunter status --address=SP2ABC...
+```
+
+### Start Agent (Dry Run)
+```bash
+npx @aibtc/yield-hunter start --key=abc123... --dry-run
+```
+
+### Start Agent (Live)
+```bash
+STACKS_PRIVATE_KEY=abc123... npx @aibtc/yield-hunter start
+```
+
+### Options
+| Option | Default | Description |
+|--------|---------|-------------|
+| `--threshold=<sats>` | 10000 | Min sBTC (sats) before depositing |
+| `--fee-buffer=<sats>` | 50000 | Reserve sats for tx fees |
+| `--interval=<sec>` | 600 | Check interval in seconds |
+| `--dry-run` | false | Don't execute, just log |
+| `--once` | false | Run once and exit |
+
+### Programmatic Usage
+```typescript
+import { createAgent } from '@aibtc/yield-hunter';
+
+const agent = createAgent({
+  privateKey: process.env.STACKS_PRIVATE_KEY!,
+  address: 'SP2ABC...',
+  minDepositThreshold: 10_000n,
+  feeBuffer: 50_000n,
+  checkIntervalMs: 600_000,
+  dryRun: false,
+  runOnce: false,
+});
+
+await agent.start();
+```
+
+---
+
+## Full Documentation
+
+Below is the complete documentation including Clarity contracts, decision engine, and advanced features.
 
 ## Overview
 
