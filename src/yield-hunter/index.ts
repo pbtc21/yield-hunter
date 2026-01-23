@@ -9,6 +9,14 @@ export * from "./types";
 // API Clients
 export { TeneroClient, tenero } from "./api/tenero-client";
 export { ContractClient, contracts } from "./api/contract-client";
+export { ZestClient, createZestClient, zest, ZEST_CONTRACTS } from "./api/zest-client";
+export {
+  fetchPrices,
+  fetchMarketConditions,
+  getStxBalance,
+  getSbtcBalance,
+  getTokenBalances,
+} from "./api/price-client";
 
 // Leaderboard API (for Cloudflare Workers)
 export { default as leaderboardApp } from "./api/leaderboard-api";
