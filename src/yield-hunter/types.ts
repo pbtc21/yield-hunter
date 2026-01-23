@@ -335,3 +335,20 @@ export type EventType =
   | "StrategyUpdated"
   | "EarningsRecorded"
   | "RiskScoreCalculated";
+
+// ============================================
+// ZEST PROTOCOL
+// ============================================
+
+export interface ZestReserveState {
+  totalSupply: bigint;      // Total sBTC supplied
+  totalBorrow: bigint;      // Total sBTC borrowed
+  supplyRate: number;       // APY in basis points (e.g., 500 = 5%)
+  borrowRate: number;       // Borrow APY in basis points
+  utilizationRate: number;  // Utilization as percentage (e.g., 75.5)
+}
+
+export interface ZestPosition {
+  supplied: bigint;         // Amount of sBTC supplied
+  asCollateral: boolean;    // Whether position is used as collateral
+}
