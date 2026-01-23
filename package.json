@@ -1,9 +1,26 @@
 {
-  "name": "yield-hunter",
-  "version": "1.0.0",
-  "description": "Autonomous yield-hunting AI agent for AIBTC on Stacks Bitcoin L2",
+  "name": "@aibtc/yield-hunter",
+  "version": "0.1.0",
+  "description": "Autonomous sBTC yield farming agent - One command to earn Bitcoin yield",
   "type": "module",
+  "bin": {
+    "yield-hunter": "./bin/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "start": "bun run ./src/cli.ts",
+    "dev": "bun run --watch ./src/cli.ts",
+    "prepublishOnly": "bun run build",
+
+    "// LEGACY - FLAG FOR REMOVAL": "===================",
     "scan": "bun run src/yield-hunter/scanning/scan-pools.ts",
     "hunt": "bun run src/yield-hunter/execution/hunt-yield.ts",
     "birth": "bun run src/yield-hunter/lifecycle/birth-hunter.ts",
@@ -17,10 +34,12 @@
     "console": "clarinet console"
   },
   "dependencies": {
-    "@faktoryfun/styx-sdk": "^1.3.5",
-    "@stacks/connect": "^7.0.0",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.13.0",
+
+    "// LEGACY DEPS - FLAG FOR REMOVAL": "===================",
+    "@faktoryfun/styx-sdk": "^1.3.5",
+    "@stacks/connect": "^7.0.0",
     "@tanstack/react-query": "^5.0.0",
     "hono": "^4.0.0",
     "sats-connect": "^2.0.0"
@@ -42,8 +61,17 @@
     "yield",
     "ai",
     "agent",
-    "sbtc"
+    "sbtc",
+    "zest"
   ],
   "author": "AIBTC <dev@aibtc.dev>",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ]
 }
