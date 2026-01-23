@@ -7,6 +7,7 @@
 import type {
   DecisionContext,
   DecisionResult,
+  Decision,
   HunterState,
   BitcoinAgentState,
   Position,
@@ -17,6 +18,8 @@ import type {
 
 import { createDecisionEngine } from "../src/yield-hunter/engine/decision-engine";
 import { createPaymentManager, formatSats } from "../src/yield-hunter/x402/micropayments";
+import { createZestClient, ZestClient, ZEST_CONTRACTS } from "../src/yield-hunter/api/zest-client";
+import { fetchMarketConditions, getTokenBalances } from "../src/yield-hunter/api/price-client";
 
 // ============================================
 // CONFIGURATION
@@ -30,6 +33,7 @@ interface AgentConfig {
   pollingIntervalMs: number;
   riskTolerance: number;
   dryRun: boolean;
+  runOnce: boolean;
 }
 
 const DEFAULT_CONFIG: AgentConfig = {
@@ -40,6 +44,7 @@ const DEFAULT_CONFIG: AgentConfig = {
   pollingIntervalMs: 600_000, // 10 minutes
   riskTolerance: 50,
   dryRun: true,
+  runOnce: false,
 };
 
 // ============================================
@@ -47,25 +52,38 @@ const DEFAULT_CONFIG: AgentConfig = {
 // ============================================
 
 async function fetchHunterState(agentAccount: string): Promise<HunterState> {
-  // In production: call Stacks API to get contract state
+  // Get real wallet balances if valid address
+  let totalInvested = BigInt(0);
+
+  if (isValidStacksAddress(agentAccount)) {
+    try {
+      const balances = await getTokenBalances(agentAccount);
+      // Total invested = sBTC balance (in sats)
+      totalInvested = balances.sbtc;
+      console.log(`  Wallet sBTC: ${formatSats(balances.sbtc)}, STX: ${Number(balances.stx) / 1_000_000} STX`);
+    } catch (error) {
+      console.error("  Failed to fetch wallet balances:", error);
+    }
+  }
+
   return {
     agentAccount,
-    owner: DEFAULT_CONFIG.ownerAddress,
+    owner: DEFAULT_CONFIG.ownerAddress || agentAccount,
     agent: agentAccount,
     bitcoinAgentId: 1,
     identityId: 1,
     initializedAt: Date.now() - 86400000 * 30,
-    totalInvested: BigInt(50_000_000), // 0.5 sBTC
-    totalYieldsEarned: BigInt(2_500_000), // 0.025 sBTC
-    totalPositionsOpened: 15,
-    totalPositionsClosed: 12,
+    totalInvested,
+    totalYieldsEarned: BigInt(0),
+    totalPositionsOpened: 0,
+    totalPositionsClosed: 0,
     lastHuntBlock: 150000,
     lastProfitableBlock: 149800,
-    peakPortfolioValue: BigInt(55_000_000),
+    peakPortfolioValue: totalInvested,
     alive: true,
     strategyConfig: {
-      minApyThreshold: 500, // 5% min
-      maxRiskScore: 60,
+      minApyThreshold: 300, // 3% min APY
+      maxRiskScore: 50,
       autoCompound: true,
       rebalanceThresholdBps: 500,
       maxPositionSizeBps: 2500,
@@ -91,50 +109,126 @@ async function fetchBitcoinAgentState(agentId: number): Promise<BitcoinAgentStat
   };
 }
 
-async function fetchCurrentPositions(agentAccount: string): Promise<Position[]> {
-  return [
-    {
-      positionId: 1,
-      hunter: agentAccount,
-      poolContract: "SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.pool-sbtc-stx",
-      tokenX: "sbtc",
-      tokenY: "stx",
-      amountInvested: BigInt(15_000_000),
-      lpTokensHeld: BigInt(12_500_000),
-      entryBlock: 148000,
-      entryPriceX: BigInt(100_000_000),
-      entryPriceY: BigInt(1_500_000),
-      lastCompoundBlock: 149500,
-      riskScore: 35,
-      active: true,
-      currentValue: BigInt(16_200_000),
-      unrealizedPnL: BigInt(1_200_000),
-      currentApy: 1850,
-    },
-    {
-      positionId: 2,
-      hunter: agentAccount,
-      poolContract: "SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.alex-sbtc-pool",
-      tokenX: "sbtc",
-      tokenY: "alex",
-      amountInvested: BigInt(10_000_000),
-      lpTokensHeld: BigInt(9_000_000),
-      entryBlock: 149000,
-      entryPriceX: BigInt(100_000_000),
-      entryPriceY: BigInt(50_000),
-      lastCompoundBlock: 149200,
-      riskScore: 45,
-      active: true,
-      currentValue: BigInt(10_800_000),
-      unrealizedPnL: BigInt(800_000),
-      currentApy: 2400,
-    },
-  ];
+// Helper to check if an address is a valid Stacks address
+function isValidStacksAddress(address: string): boolean {
+  return /^S[PT][A-Z0-9]{38,}$/.test(address);
 }
 
-async function fetchYieldOpportunities(): Promise<YieldOpportunity[]> {
-  // In production: call Tenero API
-  return [
+async function fetchCurrentPositions(agentAccount: string, zestClient: ZestClient): Promise<Position[]> {
+  const positions: Position[] = [];
+
+  // Fetch real Zest position if available and address is valid
+  if (zestClient.isAvailable() && agentAccount && isValidStacksAddress(agentAccount)) {
+    try {
+      const zestPosition = await zestClient.getZestPosition(agentAccount);
+      const zestApy = await zestClient.getZestSupplyAPY();
+
+      if (zestPosition && zestPosition.supplied > 0n) {
+        positions.push({
+          positionId: 0, // Zest position
+          hunter: agentAccount,
+          poolContract: ZEST_CONTRACTS.mainnet.poolBorrow,
+          tokenX: "sbtc",
+          tokenY: "zsbtc",
+          amountInvested: zestPosition.supplied,
+          lpTokensHeld: zestPosition.supplied, // 1:1 for lending
+          entryBlock: 0, // Unknown
+          entryPriceX: BigInt(100_000_000),
+          entryPriceY: BigInt(100_000_000),
+          lastCompoundBlock: 0,
+          riskScore: 25,
+          active: true,
+          currentValue: zestPosition.supplied,
+          unrealizedPnL: BigInt(0), // Would need to track entry value
+          currentApy: zestApy,
+        });
+
+        console.log(`  Zest position: ${formatSats(zestPosition.supplied)} supplied`);
+      }
+    } catch (error) {
+      console.error("  Failed to fetch Zest position:", error);
+    }
+  }
+
+  // Add mock positions for demo (remove in production)
+  if (positions.length === 0) {
+    positions.push(
+      {
+        positionId: 1,
+        hunter: agentAccount,
+        poolContract: "SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.pool-sbtc-stx",
+        tokenX: "sbtc",
+        tokenY: "stx",
+        amountInvested: BigInt(15_000_000),
+        lpTokensHeld: BigInt(12_500_000),
+        entryBlock: 148000,
+        entryPriceX: BigInt(100_000_000),
+        entryPriceY: BigInt(1_500_000),
+        lastCompoundBlock: 149500,
+        riskScore: 35,
+        active: true,
+        currentValue: BigInt(16_200_000),
+        unrealizedPnL: BigInt(1_200_000),
+        currentApy: 1850,
+      },
+      {
+        positionId: 2,
+        hunter: agentAccount,
+        poolContract: "SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.alex-sbtc-pool",
+        tokenX: "sbtc",
+        tokenY: "alex",
+        amountInvested: BigInt(10_000_000),
+        lpTokensHeld: BigInt(9_000_000),
+        entryBlock: 149000,
+        entryPriceX: BigInt(100_000_000),
+        entryPriceY: BigInt(50_000),
+        lastCompoundBlock: 149200,
+        riskScore: 45,
+        active: true,
+        currentValue: BigInt(10_800_000),
+        unrealizedPnL: BigInt(800_000),
+        currentApy: 2400,
+      }
+    );
+  }
+
+  return positions;
+}
+
+async function fetchYieldOpportunities(zestClient: ZestClient): Promise<YieldOpportunity[]> {
+  const opportunities: YieldOpportunity[] = [];
+
+  // Fetch real Zest APY if on mainnet
+  if (zestClient.isAvailable()) {
+    try {
+      const zestApy = await zestClient.getZestSupplyAPY();
+      const reserveState = await zestClient.getZestReserveState();
+
+      opportunities.push({
+        poolContract: ZEST_CONTRACTS.mainnet.poolBorrow,
+        poolName: "Zest sBTC Supply",
+        tokenX: "sbtc",
+        tokenY: "zsbtc",
+        tokenXSymbol: "sBTC",
+        tokenYSymbol: "zsBTC",
+        liquidity: reserveState?.totalSupply || BigInt(0),
+        volume24h: BigInt(0), // Zest doesn't have trading volume
+        feeTier: 0, // No trading fees for lending
+        apy: zestApy,
+        riskScore: 25, // Low risk - established lending protocol
+        holderCount: 0,
+        poolAge: 100000, // Well established
+        lastUpdated: Date.now(),
+      });
+
+      console.log(`  Zest sBTC Supply APY: ${(zestApy / 100).toFixed(2)}%`);
+    } catch (error) {
+      console.error("  Failed to fetch Zest data:", error);
+    }
+  }
+
+  // Add other mock opportunities (can be replaced with real API calls later)
+  opportunities.push(
     {
       poolContract: "SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.pool-sbtc-stx",
       poolName: "sBTC/STX",
@@ -198,20 +292,74 @@ async function fetchYieldOpportunities(): Promise<YieldOpportunity[]> {
       holderCount: 380,
       poolAge: 15000,
       lastUpdated: Date.now(),
-    },
-  ];
+    }
+  );
+
+  return opportunities;
 }
 
-async function fetchMarketConditions(): Promise<MarketConditions> {
-  // In production: call Pyth Oracle
-  return {
-    btcPrice: 95000,
-    stxPrice: 2.15,
-    btcPriceChange24h: 2.5,
-    stxPriceChange24h: 4.2,
-    overallSentiment: "bullish",
-    volatilityIndex: 45,
-  };
+// fetchMarketConditions is imported from price-client.ts (real CoinGecko data)
+
+// ============================================
+// EXECUTION
+// ============================================
+
+async function executeDecision(
+  decision: Decision,
+  zestClient: ZestClient,
+  config: AgentConfig
+): Promise<{ success: boolean; txId?: string; error?: string }> {
+  console.log(`  Executing ${decision.action}...`);
+
+  switch (decision.action) {
+    case "hunt": {
+      const { poolContract, amount } = decision.params;
+
+      // Check if this is a Zest pool
+      if (poolContract === ZEST_CONTRACTS.mainnet.poolBorrow) {
+        const result = await zestClient.supplyToZest(BigInt(amount));
+        if (result.success) {
+          console.log(`  Supplied ${formatSats(BigInt(amount))} to Zest. TxID: ${result.txId}`);
+        } else {
+          console.error(`  Failed to supply to Zest: ${result.error}`);
+        }
+        return result;
+      }
+
+      // Other pools would be handled here
+      console.log(`  Pool ${poolContract} not yet implemented for execution`);
+      return { success: false, error: "Pool not implemented" };
+    }
+
+    case "exit": {
+      const { poolContract, amount } = decision.params;
+
+      // Check if this is a Zest pool
+      if (poolContract === ZEST_CONTRACTS.mainnet.poolBorrow) {
+        const result = await zestClient.withdrawFromZest(BigInt(amount));
+        if (result.success) {
+          console.log(`  Withdrew ${formatSats(BigInt(amount))} from Zest. TxID: ${result.txId}`);
+        } else {
+          console.error(`  Failed to withdraw from Zest: ${result.error}`);
+        }
+        return result;
+      }
+
+      console.log(`  Pool ${poolContract} not yet implemented for execution`);
+      return { success: false, error: "Pool not implemented" };
+    }
+
+    case "compound":
+    case "rebalance":
+    case "feed":
+    case "wait":
+    case "emergency-exit":
+      console.log(`  Action ${decision.action} not yet implemented`);
+      return { success: false, error: "Not implemented" };
+
+    default:
+      return { success: false, error: `Unknown action: ${decision.action}` };
+  }
 }
 
 function calculatePortfolioSummary(positions: Position[], hunterState: HunterState): PortfolioSummary {
@@ -247,6 +395,19 @@ async function runAgentLoop(config: AgentConfig): Promise<void> {
   console.log("=".repeat(60));
   console.log("");
 
+  // Initialize Zest client
+  const zestClient = createZestClient({
+    network: config.network,
+    senderKey: process.env.STACKS_PRIVATE_KEY,
+    senderAddress: config.agentAccount,
+  });
+
+  if (zestClient.isAvailable()) {
+    console.log("Zest Protocol: CONNECTED (mainnet)");
+  } else {
+    console.log("Zest Protocol: NOT AVAILABLE (testnet or no contracts)");
+  }
+
   // Initialize payment manager (mock signer for demo)
   const paymentManager = createPaymentManager(config.agentAccount, async (msg) => "mock-signature");
   await paymentManager.initialize();
@@ -264,8 +425,8 @@ async function runAgentLoop(config: AgentConfig): Promise<void> {
       const [hunterState, bitcoinAgentState, currentPositions, opportunities, marketConditions] = await Promise.all([
         fetchHunterState(config.agentAccount),
         fetchBitcoinAgentState(config.agentId),
-        fetchCurrentPositions(config.agentAccount),
-        fetchYieldOpportunities(),
+        fetchCurrentPositions(config.agentAccount, zestClient),
+        fetchYieldOpportunities(zestClient),
         fetchMarketConditions(),
       ]);
 
@@ -308,9 +469,12 @@ async function runAgentLoop(config: AgentConfig): Promise<void> {
           console.log(`  Reason: ${decision.reasoning}`);
 
           if (!config.dryRun) {
-            console.log(`  Executing...`);
-            // In production: execute the decision
-            // await executeDecision(decision);
+            const execResult = await executeDecision(decision, zestClient, config);
+            if (execResult.success) {
+              console.log(`  Success! TxID: ${execResult.txId}`);
+            } else {
+              console.log(`  Failed: ${execResult.error}`);
+            }
           } else {
             console.log(`  (Dry run - not executing)`);
           }
@@ -323,6 +487,12 @@ async function runAgentLoop(config: AgentConfig): Promise<void> {
       console.log(`\nPayment balance: ${formatSats(paymentManager.getBalance())}`);
     } catch (error) {
       console.error(`Error: ${error}`);
+    }
+
+    // Exit if running in single-run mode
+    if (config.runOnce) {
+      console.log("\n[Single run mode - exiting]");
+      break;
     }
 
     // Wait for next iteration
@@ -350,6 +520,7 @@ Options:
   --risk=<0-100>                Risk tolerance (default: 50)
   --dry-run                     Don't execute transactions (default: true)
   --execute                     Actually execute transactions
+  --once                        Run once and exit (for testing)
   --help                        Show this help
 
 Environment:
@@ -390,6 +561,8 @@ async function main(): Promise<void> {
       config.dryRun = true;
     } else if (arg === "--execute") {
       config.dryRun = false;
+    } else if (arg === "--once") {
+      config.runOnce = true;
     }
   }
 
