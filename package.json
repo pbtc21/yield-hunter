@@ -15,9 +15,10 @@
     }
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node",
+    "build": "bun build ./src/cli.ts ./src/index.ts --outdir ./dist --target node",
     "start": "bun run ./src/cli.ts",
     "dev": "bun run --watch ./src/cli.ts",
+    "prepare": "bun run build",
     "prepublishOnly": "bun run build",
     "scan": "bun run src/yield-hunter/scanning/scan-pools.ts",
     "hunt": "bun run src/yield-hunter/execution/hunt-yield.ts",
