@@ -51,6 +51,13 @@ const DEFAULT_CONTRACTS = {
     adapter: "", // Set after deployment
     oracle: "", // Set after deployment
     sbtc: "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token", // Official sBTC mainnet
+    // Zest Protocol mainnet contracts
+    zest: {
+      poolBorrow: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-borrow-v2-3",
+      borrowHelper: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.borrow-helper-v2-1-5",
+      poolReserve: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve",
+      zsBTC: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.zsbtc-v2-0",
+    },
   },
   testnet: {
     // Testnet contract addresses - deploy these first
@@ -58,12 +65,25 @@ const DEFAULT_CONTRACTS = {
     adapter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-adapter",
     oracle: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-oracle",
     sbtc: "ST1F7QA2MDF17S807EPA36TSS8AMEFY4KA9TVGWXT.sbtc-token", // Testnet sBTC
+    // Zest not available on testnet
+    zest: {
+      poolBorrow: "",
+      borrowHelper: "",
+      poolReserve: "",
+      zsBTC: "",
+    },
   },
   devnet: {
     yieldHunter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter",
     adapter: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-adapter",
     oracle: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.yield-hunter-oracle",
     sbtc: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-token",
+    zest: {
+      poolBorrow: "",
+      borrowHelper: "",
+      poolReserve: "",
+      zsBTC: "",
+    },
   },
 };
 
