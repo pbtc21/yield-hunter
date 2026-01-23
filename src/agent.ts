@@ -40,6 +40,12 @@ export interface AgentStats {
   lastCheck: Date | null;
   lastDeposit: Date | null;
   errors: number;
+  /** Tracks initial deposit to calculate earnings */
+  initialZestPosition: bigint;
+  /** Current Zest position (includes compounded interest) */
+  currentZestPosition: bigint;
+  /** Calculated earnings (current - initial - deposits) */
+  earnedFromCompounding: bigint;
 }
 
 // ============================================
@@ -94,6 +100,9 @@ export class YieldHunterAgent {
       lastCheck: null,
       lastDeposit: null,
       errors: 0,
+      initialZestPosition: 0n,
+      currentZestPosition: 0n,
+      earnedFromCompounding: 0n,
     };
   }
 
@@ -151,6 +160,21 @@ export class YieldHunterAgent {
       const position = await this.zest.getZestPosition(this.config.address);
       const zestSupplied = position?.supplied || 0n;
       log(`Zest supplied: ${formatSats(zestSupplied)}`);
+
+      // Track compounding earnings
+      if (this.stats.initialZestPosition === 0n && zestSupplied > 0n) {
+        // First time seeing a position - set as initial
+        this.stats.initialZestPosition = zestSupplied;
+      }
+      this.stats.currentZestPosition = zestSupplied;
+
+      // Calculate earnings from compounding
+      // Earnings = Current Position - Initial Position - New Deposits
+      const baselinePosition = this.stats.initialZestPosition + this.stats.totalDeposited;
+      if (zestSupplied > baselinePosition) {
+        this.stats.earnedFromCompounding = zestSupplied - baselinePosition;
+        log(`📈 Compounded earnings: ${formatSats(this.stats.earnedFromCompounding)}`);
+      }
 
       // Get current APY
       const apy = await this.zest.getZestSupplyAPY();
@@ -280,6 +304,23 @@ export class YieldHunterAgent {
     console.log(`   Errors: ${this.stats.errors}`);
     if (this.stats.lastDeposit) {
       console.log(`   Last deposit: ${this.stats.lastDeposit.toISOString()}`);
+    }
+
+    // Zest position and earnings
+    if (this.stats.currentZestPosition > 0n) {
+      console.log("\n🏦 Zest Position:");
+      console.log(`   Current position: ${formatSats(this.stats.currentZestPosition)}`);
+      console.log(`   Compounded earnings: ${formatSats(this.stats.earnedFromCompounding)}`);
+
+      // Calculate APY earned so far
+      if (this.stats.initialZestPosition > 0n && this.stats.earnedFromCompounding > 0n) {
+        const hoursElapsed = runtime / 3600000;
+        if (hoursElapsed > 0) {
+          const returnRate = Number(this.stats.earnedFromCompounding * 10000n / this.stats.initialZestPosition) / 100;
+          const annualizedApy = (returnRate / hoursElapsed) * 8760; // hours in year
+          console.log(`   Realized APY: ${annualizedApy.toFixed(2)}%`);
+        }
+      }
     }
   }
 

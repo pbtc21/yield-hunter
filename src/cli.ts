@@ -141,6 +141,9 @@ async function cmdStatus(address: string): Promise<void> {
       console.log(`   Supply APY: ${(reserveState.supplyRate / 100).toFixed(2)}%`);
       console.log(`   Borrow APY: ${(reserveState.borrowRate / 100).toFixed(2)}%`);
     }
+
+    console.log("\n💡 Note: Zest auto-compounds interest. Your zsBTC balance");
+    console.log("   increases over time - no manual claiming needed!");
   } else {
     console.log("\n⚠️  Zest Protocol not available (mainnet only)");
   }
