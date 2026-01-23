@@ -13,6 +13,13 @@
 import { YieldHunterAgent, type AgentConfig } from "./agent";
 import { createZestClient } from "./yield-hunter/api/zest-client";
 import { getTokenBalances } from "./yield-hunter/api/price-client";
+import {
+  hasWallets,
+  listWallets,
+  getActiveWalletId,
+  unlockWallet,
+  promptPassword,
+} from "./wallet-integration";
 
 // ============================================
 // CLI HELPERS
@@ -61,8 +68,9 @@ Commands:
   help        Show this help message
 
 Options for 'start':
-  --key=<KEY>           Private key (hex) for signing transactions
-  --address=<ADDR>      Your Stacks address (auto-derived from key if not provided)
+  --wallet              Use wallet from ~/.aibtc/ (created via @aibtc/mcp-server)
+  --wallet-id=<ID>      Specific wallet ID to use (default: active wallet)
+  --key=<KEY>           Private key (hex) - alternative to --wallet
   --threshold=<SATS>    Minimum sBTC (sats) before depositing (default: 10000)
   --fee-buffer=<SATS>   Reserve sats for transaction fees (default: 50000)
   --interval=<SEC>      Check interval in seconds (default: 600)
@@ -71,27 +79,29 @@ Options for 'start':
 
 Options for 'status':
   --address=<ADDR>      Stacks address to check
+  --wallet              Use address from ~/.aibtc/ wallet
 
 Environment Variables:
   STACKS_PRIVATE_KEY    Private key (alternative to --key)
 
 Examples:
+  # Use existing wallet from @aibtc/mcp-server
+  yield-hunter start --wallet
+  yield-hunter status --wallet
+
   # Check positions for an address
   yield-hunter status --address=SP2ABC...
 
-  # Start in dry-run mode (no real transactions)
+  # Start with raw private key
   yield-hunter start --key=abc123... --dry-run
 
-  # Start with real execution
-  yield-hunter start --key=abc123... --threshold=100000
-
   # Run once for testing
-  yield-hunter start --key=abc123... --once --dry-run
+  yield-hunter start --wallet --once --dry-run
 
 Security:
-  Never share your private key. For production use, consider:
-  - Using environment variables: STACKS_PRIVATE_KEY=abc123 yield-hunter start
-  - Running in a secure environment with proper key management
+  Recommended: Use --wallet with wallets created via @aibtc/mcp-server
+  The wallet is encrypted and stored in ~/.aibtc/
+  You'll be prompted for password (wallet stays unlocked for 1 hour)
 `);
 }
 
@@ -205,17 +215,72 @@ async function main(): Promise<void> {
 
   switch (command) {
     case "start": {
-      const privateKey = getArg("key") || process.env.STACKS_PRIVATE_KEY;
+      let privateKey: string;
+      let address: string;
 
-      if (!privateKey) {
-        console.error("Error: Private key required. Use --key=<key> or set STACKS_PRIVATE_KEY");
-        process.exit(1);
+      // Option 1: Use wallet from ~/.aibtc/
+      if (hasFlag("wallet") || (!getArg("key") && !process.env.STACKS_PRIVATE_KEY)) {
+        const walletExists = await hasWallets();
+        if (!walletExists) {
+          console.error("Error: No wallets found in ~/.aibtc/");
+          console.error("\nTo create a wallet, install and use @aibtc/mcp-server:");
+          console.error("  npx @aibtc/mcp-server --install");
+          console.error("  Then ask Claude to create a wallet for you.");
+          console.error("\nOr use --key=<private-key> to provide a key directly.");
+          process.exit(1);
+        }
+
+        // Get wallet ID (specified or active)
+        let walletId = getArg("wallet-id");
+        if (!walletId) {
+          walletId = await getActiveWalletId();
+        }
+        if (!walletId) {
+          const wallets = await listWallets();
+          walletId = wallets[0]?.id;
+        }
+        if (!walletId) {
+          console.error("Error: No wallet found. Create one first.");
+          process.exit(1);
+        }
+
+        // Show wallet info
+        const wallets = await listWallets();
+        const wallet = wallets.find((w) => w.id === walletId);
+        console.log(`\n🔐 Using wallet: ${wallet?.name || walletId}`);
+        console.log(`   Address: ${wallet?.address}`);
+        console.log(`   Network: ${wallet?.network}\n`);
+
+        if (wallet?.network !== "mainnet") {
+          console.error("Error: Yield Hunter requires mainnet. Wallet is on testnet.");
+          process.exit(1);
+        }
+
+        // Prompt for password
+        const password = await promptPassword();
+
+        // Unlock wallet
+        try {
+          const account = await unlockWallet(walletId, password);
+          privateKey = account.privateKey;
+          address = account.address;
+          console.log("✓ Wallet unlocked\n");
+        } catch (error: any) {
+          console.error(`Error: ${error.message}`);
+          process.exit(1);
+        }
       }
+      // Option 2: Use raw private key
+      else {
+        privateKey = getArg("key") || process.env.STACKS_PRIVATE_KEY!;
 
-      // Derive address from private key if not provided
-      let address = getArg("address");
-      if (!address) {
-        // Import here to avoid loading if not needed
+        if (!privateKey) {
+          console.error("Error: Private key required.");
+          console.error("Use --wallet, --key=<key>, or set STACKS_PRIVATE_KEY");
+          process.exit(1);
+        }
+
+        // Derive address from private key
         const { getAddressFromPrivateKey, TransactionVersion } = await import("@stacks/transactions");
         address = getAddressFromPrivateKey(privateKey, TransactionVersion.Mainnet);
       }
@@ -235,9 +300,30 @@ async function main(): Promise<void> {
     }
 
     case "status": {
-      const address = getArg("address");
+      let address = getArg("address");
+
+      // If --wallet flag or no address provided, try to get from wallet
+      if (hasFlag("wallet") || !address) {
+        const walletExists = await hasWallets();
+        if (walletExists) {
+          let walletId = await getActiveWalletId();
+          if (!walletId) {
+            const wallets = await listWallets();
+            walletId = wallets[0]?.id;
+          }
+          if (walletId) {
+            const wallets = await listWallets();
+            const wallet = wallets.find((w) => w.id === walletId);
+            if (wallet) {
+              address = wallet.address;
+              console.log(`Using wallet: ${wallet.name} (${wallet.address})\n`);
+            }
+          }
+        }
+      }
+
       if (!address) {
-        console.error("Error: Address required. Use --address=<addr>");
+        console.error("Error: Address required. Use --address=<addr> or --wallet");
         process.exit(1);
       }
       await cmdStatus(address);
