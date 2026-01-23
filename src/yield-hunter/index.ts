@@ -53,4 +53,11 @@ export {
 } from "./wallet/connect";
 
 // Re-export for convenience
-export const VERSION = "1.0.0";
+export const VERSION = "0.1.0";
+
+// ============================================
+// NEW - Autonomous Agent (v2)
+// ============================================
+
+export { YieldHunterAgent, createAgent } from "../agent";
+export type { AgentConfig, AgentStats } from "../agent";
