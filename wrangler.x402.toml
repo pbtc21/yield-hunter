@@ -1,5 +1,5 @@
 name = "yield-hunter-x402"
-main = "src/api/x402-server.ts"
+main = "src/api/worker.ts"
 compatibility_date = "2024-01-01"
 workers_dev = true
 
