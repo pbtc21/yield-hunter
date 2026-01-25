@@ -1,0 +1,11 @@
+name = "yield-hunter-x402"
+main = "src/api/x402-server.ts"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+[vars]
+NETWORK = "testnet"
+
+# For mainnet deployment:
+# [env.production]
+# vars = { NETWORK = "mainnet" }

@@ -30,9 +30,13 @@
     "deploy:contracts": "bun run scripts/deploy.ts",
     "deploy:leaderboard": "bun run wrangler deploy --config wrangler.leaderboard.toml",
     "dev:leaderboard": "bun run wrangler dev --config wrangler.leaderboard.toml",
+    "deploy:x402": "bun run wrangler deploy --config wrangler.x402.toml",
+    "dev:x402": "bun run wrangler dev --config wrangler.x402.toml",
+    "mcp": "bun run src/mcp/server.ts",
     "console": "clarinet console"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
     "@stacks/network": "^6.13.0",
     "@stacks/transactions": "^6.13.0",
     "@stacks/wallet-sdk": "^6.0.0",
