@@ -3,8 +3,9 @@
  * Live yield data from Stacks DeFi protocols
  *
  * Data sources:
+ * - Hiro API: Zest Protocol on-chain sBTC lending rates (supply + borrow APY)
+ * - DeFiLlama: Zest Protocol lending APY (STX, STSTX, AEUSDC pools)
  * - Tenero API: Bitflow, ALEX, Velar AMM pool data (volume, TVL, fees)
- * - DeFiLlama: Zest Protocol lending APY
  * - Calculated: AMM APY from (fees_24h / TVL * 365)
  */
 
@@ -75,6 +76,123 @@ async function fetchZestYields(): Promise<YieldOpportunity[]> {
     console.error("Zest fetch error:", e);
     return [];
   }
+}
+
+/**
+ * Fetch Zest sBTC pool data directly from on-chain via Hiro API
+ * DeFiLlama doesn't track the sBTC pool, so we read the contract
+ *
+ * Contract: SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0
+ * Function: get-reserve-state(asset)
+ * Asset: SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token
+ */
+async function fetchZestSbtcOnChain(): Promise<YieldOpportunity[]> {
+  try {
+    // Clarity-encoded principal for sbtc-token
+    const sbtcArg = "0x0614f6decc7cfff2a413bd7cd4f53c25ad7fd1899acc0a736274632d746f6b656e";
+
+    const res = await fetch(
+      "https://api.hiro.so/v2/contracts/call-read/SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N/pool-0-reserve-v2-0/get-reserve-state",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N",
+          arguments: [sbtcArg],
+        }),
+      }
+    );
+
+    if (!res.ok) return [];
+    const data: any = await res.json();
+    if (!data.okay || !data.result) return [];
+
+    // Parse uint128 values from Clarity hex response
+    const hex = data.result.startsWith("0x") ? data.result.slice(2) : data.result;
+
+    const supplyRate = extractClarityUint(hex, "current-liquidity-rate");
+    const borrowRate = extractClarityUint(hex, "current-variable-borrow-rate");
+    const totalBorrows = extractClarityUint(hex, "total-borrows-variable");
+
+    // Rates are stored as annual rate * 1e8
+    // APY% = rate / 1e8 * 100
+    const supplyApy = supplyRate !== null ? (supplyRate / 1e8) * 100 : 0;
+    const borrowApy = borrowRate !== null ? (borrowRate / 1e8) * 100 : 0;
+    const borrowedSbtc = totalBorrows !== null ? totalBorrows / 1e8 : 0;
+
+    // Get sBTC TVL from Hiro (total supplied to Zest pool vault)
+    let tvlSats = 0;
+    try {
+      const vaultRes = await fetch(
+        "https://api.hiro.so/extended/v1/address/SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-vault/balances"
+      );
+      if (vaultRes.ok) {
+        const vaultData: any = await vaultRes.json();
+        const sbtcBalance = vaultData.fungible_tokens?.["SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token::sbtc-token"];
+        tvlSats = parseInt(sbtcBalance?.balance || "0");
+      }
+    } catch {}
+
+    // Estimate TVL in USD (use a rough BTC price, will be replaced by real price in scan)
+    const btcPriceEstimate = 100000;
+    const tvlUsd = (tvlSats / 1e8) * btcPriceEstimate;
+
+    const opportunities: YieldOpportunity[] = [];
+
+    // Supply opportunity (what lenders earn)
+    opportunities.push({
+      protocol: "Zest",
+      pool: "sBTC Lending (Supply)",
+      type: "lending",
+      apy: Math.round(supplyApy * 10000) / 10000,
+      tvlUsd: Math.round(tvlUsd),
+      volume24hUsd: 0,
+      riskScore: 10, // Low risk - protocol-level lending
+      minDeposit: 10_000,
+      source: "on-chain",
+      poolAddress: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-0-reserve-v2-0",
+      live: true,
+    });
+
+    // Borrow rate info (for reference / agents considering leverage)
+    if (borrowApy > 0) {
+      opportunities.push({
+        protocol: "Zest",
+        pool: "sBTC Borrow Rate",
+        type: "lending",
+        apy: -(Math.round(borrowApy * 10000) / 10000), // Negative = cost
+        tvlUsd: Math.round(borrowedSbtc * btcPriceEstimate),
+        volume24hUsd: 0,
+        riskScore: 20,
+        minDeposit: 50_000,
+        source: "on-chain",
+        poolAddress: "SP2VCQJGH7PHP2DJK7Z0V48AGBHQAW3R3ZW1QF4N.pool-borrow-v2-3",
+        live: true,
+      });
+    }
+
+    return opportunities;
+  } catch (e) {
+    console.error("Zest on-chain fetch error:", e);
+    return [];
+  }
+}
+
+/**
+ * Extract a uint128 value from Clarity hex-encoded tuple response
+ */
+function extractClarityUint(hex: string, keyName: string): number | null {
+  // Clarity tuples encode key as: length_byte + key_ascii + 01 (uint marker) + 16 bytes uint128
+  const keyHex = Array.from(keyName).map(c => c.charCodeAt(0).toString(16).padStart(2, "0")).join("");
+  const lenByte = keyName.length.toString(16).padStart(2, "0");
+  const pattern = lenByte + keyHex + "01"; // len + key + uint marker
+
+  const idx = hex.indexOf(pattern);
+  if (idx === -1) return null;
+
+  const valueStart = idx + pattern.length;
+  const valueHex = hex.slice(valueStart, valueStart + 32); // 16 bytes = 32 hex chars
+  return parseInt(valueHex, 16);
 }
 
 /**
@@ -201,14 +319,17 @@ async function scanAllYields(): Promise<YieldOpportunity[]> {
   }
 
   // Fetch from all sources in parallel
-  const [zestYields, teneroPools, otherStacks] = await Promise.allSettled([
+  const [zestYields, zestOnChain, teneroPools, otherStacks] = await Promise.allSettled([
     fetchZestYields(),
+    fetchZestSbtcOnChain(),
     fetchTeneroSbtcPools(),
     fetchAllStacksYields(),
   ]);
 
   const allYields: YieldOpportunity[] = [];
 
+  // On-chain data first (highest priority)
+  if (zestOnChain.status === "fulfilled") allYields.push(...zestOnChain.value);
   if (zestYields.status === "fulfilled") allYields.push(...zestYields.value);
   if (teneroPools.status === "fulfilled") allYields.push(...teneroPools.value);
   if (otherStacks.status === "fulfilled") allYields.push(...otherStacks.value);

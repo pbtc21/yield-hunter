@@ -131,14 +131,15 @@ describe("Live Yield Data", () => {
       expect(y.tvlUsd).toBeNumber();
       expect(y.riskScore).toBeNumber();
       expect(y.minDeposit).toBeNumber();
-      expect(y.source).toBeOneOf(["defillama", "tenero"]);
+      expect(y.source).toBeOneOf(["defillama", "tenero", "on-chain"]);
       expect(y.live).toBe(true);
     }
   });
 
-  test("APY values are reasonable (0-1000%)", () => {
+  test("APY values are reasonable (-100% to 1000%)", () => {
     for (const y of yieldsData.yields) {
-      expect(y.apy).toBeGreaterThanOrEqual(0);
+      // Borrow rates are negative (cost to borrow)
+      expect(y.apy).toBeGreaterThanOrEqual(-100);
       expect(y.apy).toBeLessThan(1000);
     }
   });
